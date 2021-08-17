@@ -1,16 +1,18 @@
-# dev_os
+# dev_OS
 
-My intent is to create a slim, sleek and fast OS for developers.
+My intent is to create a slim, sleek and smart OS for developers.
 
 I will use this repo to document all my progress.
 
 ## Getting Started
 
-I plan to use [vagrant](https://vagrantup.com) 2.2.16 for virtualization and [virtualbox](https://virtualbox.org) 6.1.26 as provider.
+I plan to use [Vagrant](https://vagrantup.com) for virtualization and [VirtualBox](https://virtualbox.org) as provider.
 
 ## Prerequisites
 
-TBA
+- Vagrant 2.2.16
+- VirtualBox 6.1.26
+- Fedora 25 (VM)
 
 ## Deployment
 
