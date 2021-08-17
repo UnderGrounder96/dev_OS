@@ -21,6 +21,8 @@ function main(){
       _logger_info "There is no Vagrantfile"; exit 1
     }
 
+    export VAGRANT_EXPERIMENTAL="disks"
+
     _logger_info "Starting the vagrant machine"
     vagrant up
 
