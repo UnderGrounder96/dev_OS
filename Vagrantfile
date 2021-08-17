@@ -69,8 +69,8 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
-    dnf group install -y "C Development Tools and Libraries"
-    dnf group install -y "Development Tools"
-  SHELL
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   dnf group install -y "C Development Tools and Libraries"
+  #   dnf group install -y "Development Tools"
+  # SHELL
 end
