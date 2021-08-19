@@ -27,7 +27,7 @@ function clean_tmp_dir(){
 
 
 function deps_install(){
-    $ROOT_DIR/lib/deps.sh
+    bash $ROOT_DIR/lib/deps.sh
 }
 
 function main(){
