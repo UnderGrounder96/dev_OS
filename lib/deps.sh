@@ -24,10 +24,10 @@ function check_yaac(){
     sudo dnf remove -y byacc
     sudo dnf reinstall -y bison
 
-    sudo ln -s `which bison` /bin/yacc
+    sudo ln -vs `which bison` /bin/yacc
 }
 
-function create_user(){
+function create_build_user(){
     _logger_info "Handling build user creation"
     export BUILD_USER="byol"
 
@@ -54,7 +54,7 @@ function create_build_dirs(){
     sudo chmod -vR 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
 }
 
-function build_disk_mount(){
+function mount_build_disk(){
     _logger_info "Handling build_disk"
 
     # Labeling build_disk
@@ -95,11 +95,10 @@ function main(){
 
     check_yaac
 
-    create_user
-
+    create_build_user
     create_build_dirs
 
-    build_disk_mount
+    mount_build_disk
 
     exit 0
 }
