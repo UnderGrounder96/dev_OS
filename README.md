@@ -2,21 +2,18 @@
 
 ## Getting Started
 
-My intent is to create a slim, sleek and smart OS for developers.
-
-I will use this repo to document all my progress.
-
-I plan to use [Vagrant](https://vagrantup.com) for virtualization and [VirtualBox](https://virtualbox.org) as provider.
+`dev_OS` is a slim, sleek and smart Linux Operative System aimed for developers.
 
 ## Prerequisites
 
-- Vagrant 2.2.16
-- VirtualBox 6.1.26
-- Fedora 25 (VM)
+In order to build `dev_OS`, one would need Vagrant (v2.2) and VirtualBox (v6.1).
+
+`dev_OS` is built inside a `Fedora 25` Virtual Machine.
 
 ## Deployment
 
-After installing Vagrant and VirtualBox, one could build dev_OS by running:
+After installing [Vagrant](https://vagrantup.com) and [VirtualBox](https://virtualbox.org),
+one could build `dev_OS` by running:
 
 ```bash
 vagrant plugin install vagrant-hostmanager vagrant-scp
