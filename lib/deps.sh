@@ -45,11 +45,17 @@ function create_user(){
 EOF
 }
 
-function build_disk_mount(){
-    _logger_info "Handling build_disk"
+function create_build_dirs(){
+    _logger_info "Creating build directories"
     export BROOT="/build"
 
-    sudo mkdir -vp $BROOT/boot
+    sudo mkdir -vp $BROOT/{boot,source,tools}
+    sudo ln -vs $BROOT/tools / # '/tools' -> '$BROOT/tools'
+    sudo chmod -vR 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
+}
+
+function build_disk_mount(){
+    _logger_info "Handling build_disk"
 
     # Labeling build_disk
     sudo parted --script /dev/sdb mklabel gpt
@@ -90,6 +96,8 @@ function main(){
     check_yaac
 
     create_user
+
+    create_build_dirs
 
     build_disk_mount
 
