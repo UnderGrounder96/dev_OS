@@ -4,4 +4,5 @@ logs/
 
 # files
 *.log*
+*.tar*
 .DS_Store
