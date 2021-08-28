@@ -39,9 +39,11 @@ function create_build_user(){
     sudo -u $BUILD_USER tee /home/$BUILD_USER/.bashrc <<EOF 1>/dev/null
         set +h # disables history command path
         umask 022 # sets file creation permission
-        export LC_ALL=POSIX
-        export BROOT=/build
-        export PATH=/tools/bin:/bin:/usr/bin
+        LC_ALL=POSIX
+        BROOT=/build
+        BTARGET=x86_64-BROOT-linux-gnu
+        PATH=/tools/bin:/bin:/usr/bin
+        export LC_ALL BROOT BTARGET PATH
 EOF
 }
 
