@@ -47,7 +47,6 @@ EOF
 
 function create_build_dirs(){
     _logger_info "Creating build directories"
-    export BROOT="/build"
 
     sudo mkdir -vp $BROOT/{boot,source,tools}
     sudo ln -vs $BROOT/tools / # '/tools' -> '$BROOT/tools'
@@ -56,6 +55,9 @@ function create_build_dirs(){
 
 function mount_build_disk(){
     _logger_info "Handling build_disk"
+    export BROOT="/build"
+
+    sudo mkdir -vp $BROOT
 
     # Labeling build_disk
     sudo parted --script /dev/sdb mklabel gpt
@@ -68,7 +70,6 @@ function mount_build_disk(){
     # '/boot' partition
     sudo parted --script /dev/sdb mkpart primary 120MB 666MB
     sudo mkfs.xfs -L DESTBOOT /dev/sdb2
-    sudo mount -t xfs --label DESTBOOT $BROOT/boot
 
     # '/' root file system partition
     sudo parted --script /dev/sdb mkpart primary 666MB 28GB
@@ -81,11 +82,18 @@ function mount_build_disk(){
     sudo swapon LABEL=DESTSWAP
 
 
+    create_build_dirs # fisrt mount $BROOT, then create folders
+
+    sudo mount -t xfs --label DESTBOOT $BROOT/boot
+
+    # for persistent mount
+    echo "LABEL=DESTROOT $BROOT xfs defaults 0 0" | sudo tee -a /etc/fstab
+    echo "LABEL=DESTBOOT $BROOT/boot xfs defaults 0 0" | sudo tee -a /etc/fstab
+
+
     _logger_info "Sanity check"
     mount | grep 'sdb'
     lsblk
-
-    sleep 15s
 }
 
 
@@ -96,7 +104,6 @@ function main(){
     check_yaac
 
     create_build_user
-    create_build_dirs
 
     mount_build_disk
 
