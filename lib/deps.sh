@@ -29,7 +29,6 @@ function check_yaac(){
 
 function create_build_user(){
     _logger_info "Handling build user creation"
-    export BUSER="byol"
 
     sudo useradd --create-home --skel /dev/null $BUSER
     sudo usermod $BUSER -aG wheel
@@ -57,7 +56,6 @@ function create_build_dirs(){
 
 function mount_build_disk(){
     _logger_info "Handling build_disk"
-    export BROOT="/build"
 
     sudo mkdir -vp $BROOT
 
