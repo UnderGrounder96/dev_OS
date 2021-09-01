@@ -29,14 +29,14 @@ function check_yaac(){
 
 function create_build_user(){
     _logger_info "Handling build user creation"
-    export BUILD_USER="byol"
+    export BUSER="byol"
 
-    sudo useradd --create-home --skel /dev/null $BUILD_USER
-    sudo usermod $BUILD_USER -aG wheel
+    sudo useradd --create-home --skel /dev/null $BUSER
+    sudo usermod $BUSER -aG wheel
 
-    echo 'exec env -i HOME=$HOME TERM=$TERM PS1="[\u@\h \W]\$\n" /bin/bash' | sudo -u $BUILD_USER tee /home/$BUILD_USER/.bash_profile
+    echo 'exec env -i HOME=$HOME TERM=$TERM PS1="[\u@\h \W]\$\n" /bin/bash' | sudo -u $BUSER tee /home/$BUSER/.bash_profile
 
-    sudo -u $BUILD_USER tee /home/$BUILD_USER/.bashrc <<EOF 1>/dev/null
+    sudo -u $BUSER tee /home/$BUSER/.bashrc <<EOF 1>/dev/null
         set +h # disables history command path
         umask 022 # sets file creation permission
         LC_ALL=POSIX
