@@ -30,10 +30,17 @@ function deps_install(){
     bash $ROOT_DIR/lib/deps.sh
 }
 
+function build_toolchain(){
+    cd $BROOT/source/build
+    sudo -u $BUSER bash $ROOT_DIR/build/temp_toolchain.sh $ROOT_DIR/config/common.sh
+}
+
 function main(){
     prepare_tmp_dir
 
     deps_install
+
+    build_toolchain
 
     clean_tmp_dir
     exit 0

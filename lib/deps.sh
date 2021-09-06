@@ -33,6 +33,8 @@ function create_build_user(){
     sudo useradd --create-home --skel /dev/null $BUSER
     sudo usermod $BUSER -aG wheel
 
+    echo "$BUSER    ALL=(ALL) NOPASSWD:    ALL" | sudo tee -a /etc/sudoers
+
     echo 'exec env -i HOME=$HOME TERM=$TERM PS1="[\u@\h \W]\$\n" /bin/bash' | sudo -u $BUSER tee /home/$BUSER/.bash_profile
 
     sudo -u $BUSER tee /home/$BUSER/.bashrc <<EOF 1>/dev/null
@@ -49,7 +51,7 @@ EOF
 function create_build_dirs(){
     _logger_info "Creating build directories"
 
-    sudo mkdir -vp $BROOT/{boot,source,tools}
+    sudo mkdir -vp $BROOT/{boot,source/build,tools}
     sudo ln -vs $BROOT/tools / # '/tools' -> '$BROOT/tools'
     sudo chmod -vR 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
 }
