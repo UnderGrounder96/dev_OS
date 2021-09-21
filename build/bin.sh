@@ -32,8 +32,7 @@ function deps_install(){
 
 function build_toolchain(){
     cd $BROOT/source/build
-    sudo -u $BUSER bash $ROOT_DIR/build/temp_toolchain.sh $ROOT_DIR/config/common.sh
-    cp -v $BROOT/logs/*.log $ROOT_DIR/logs/
+    sudo -u $BUSER env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/temp_toolchain.sh $ROOT_DIR/config/common.sh
 }
 
 function main(){

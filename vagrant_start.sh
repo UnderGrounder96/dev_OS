@@ -6,6 +6,8 @@
 
 set -euo pipefail
 
+EXIT_BUILD_STATUS=0
+
 source config/common.sh
 
 function vagrant_destroy(){
@@ -27,10 +29,15 @@ function main(){
     vagrant up
 
     _logger_info "Running build.sh"
-    vagrant ssh -c "bash /vagrant/build/bin.sh"
+    vagrant ssh -c "bash /vagrant/build/bin.sh" || {
+        EXIT_BUILD_STATUS=$?
+        _logger_info "ERROR: Build failed, please analyze the logs"
+    }
 
-    _logger_info "Aquiring build.log"
+    _logger_info "Acquiring build logs"
     vagrant scp ":/vagrant/logs/*.log*" logs/ # if scp below v0.5, see https://github.com/hashicorp/vagrant/issues/12504
+
+    exit $EXIT_BUILD_STATUS
 }
 
 vagrant_destroy
