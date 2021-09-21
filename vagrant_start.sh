@@ -29,8 +29,8 @@ function main(){
     _logger_info "Running build.sh"
     vagrant ssh -c "bash /vagrant/build/bin.sh"
 
-    # _logger_info "Aquiring build.log"
-    # vagrant scp ":/vagrant/logs/build*.log" logs/
+    _logger_info "Aquiring build.log"
+    vagrant scp ":/vagrant/logs/*.log*" logs/ # if scp below v0.5, see https://github.com/hashicorp/vagrant/issues/12504
 }
 
 vagrant_destroy
