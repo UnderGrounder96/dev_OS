@@ -11,6 +11,8 @@ COMMON=${1}
 source $COMMON
 source ~/.bashrc
 
+LOG_FILE="$BROOT/logs/temp_toolchain-$(date '+%F_%T').log"
+
 function clean_cwd(){
     _logger_info "Removing everything from $PWD"
 
@@ -49,4 +51,4 @@ function main(){
     clean_cwd
 }
 
-main
+main 2>&1 | tee -a $LOG_FILE

@@ -9,7 +9,7 @@ set -euo pipefail
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 LOG_FILE="$ROOT_DIR/logs/build-$(date '+%F_%T').log"
 
-export ROOT_DIR LOG_FILE
+export ROOT_DIR
 
 source $ROOT_DIR/config/common.sh
 
@@ -33,6 +33,7 @@ function deps_install(){
 function build_toolchain(){
     cd $BROOT/source/build
     sudo -u $BUSER bash $ROOT_DIR/build/temp_toolchain.sh $ROOT_DIR/config/common.sh
+    cp -v $BROOT/logs/*.log $ROOT_DIR/logs/
 }
 
 function main(){

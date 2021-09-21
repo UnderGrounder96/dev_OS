@@ -6,6 +6,8 @@
 
 set -euo pipefail
 
+LOG_FILE="$ROOT_DIR/logs/dependencies-$(date '+%F_%T').log"
+
 function group_installs(){
     _logger_info "Performing groupinstalls"
     sudo dnf group install -y "C Development Tools and Libraries"
@@ -51,7 +53,7 @@ EOF
 function create_build_dirs(){
     _logger_info "Creating build directories"
 
-    sudo mkdir -vp $BROOT/{boot,source/build,tools}
+    sudo mkdir -vp $BROOT/{boot,source/build,logs,tools}
     sudo ln -vs $BROOT/tools / # '/tools' -> '$BROOT/tools'
     sudo chmod -vR 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
 }
@@ -132,4 +134,4 @@ function main(){
     exit 0
 }
 
-main
+main 2>&1 | tee -a $LOG_FILE

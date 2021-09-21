@@ -2,4 +2,4 @@
 
 - [x] Add Jenkinsfile
 - [ ] Configure Jenkins Webhook
-- [ ] Divide logs per file/main
+- [x] Divide logs per file/main
