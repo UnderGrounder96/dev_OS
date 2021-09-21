@@ -1,0 +1,65 @@
+# Configure flags
+## Explanation from buildyourownlinux
+
+../binutils-2.36.1/configure \
+  --prefix=/tools            \
+  --with-sysroot=$BROOT      \
+  --with-lib-path=/tools/lib \
+  --target=$BTARGET          \
+  --disable-nls              \
+  --disable-werror
+
+prefix :: Tells the configure script where the compiled binaries should be installed.
+with-sysroot :: Tells the configure script to look in the specified directory for the target system libraries.
+with-lib-path :: Specifies which path the linker will be configured to use.
+target :: Because the triplet we've defined is slightly different than what will be determined by configure itself, the binutils source needs to be compiled to accommodate cross-linking. This is necessary because we want to ensure a "clean room" build, without any artifacts from the build system.
+disable-els :: Disables internationalization, which we don't need at this stage.
+disable-werror :: Keeps warnings from interrupting the compile process.
+
+------------------------------------------------------------------------------------------------------------------------------
+
+../gcc-10.2.0/configure                          \
+  --target=$BTARGET                              \
+  --prefix=/tools                                \
+  --with-glibc-version=2.24                      \
+  --with-sysroot=$BROOT                          \
+  --with-newlib                                  \
+  --without-headers                              \
+  --with-local-prefix=/tools                     \
+  --with-native-system-header-dir=/tools/include \
+  --disable-nls                                  \
+  --disable-shared                               \
+  --disable-multilib                             \
+  --disable-decimal-float                        \
+  --disable-threads                              \
+  --disable-libatomic                            \
+  --disable-libgomp                              \
+  --disable-libmpx                               \
+  --disable-libquadmath                          \
+  --disable-libssp                               \
+  --disable-libvtv                               \
+  --disable-libstdcxx                            \
+  --enable-languages=c,c++
+
+target :: Tells make to use the target triplet located in our environment variable.
+prefix :: Instructs make to use the specified path to prefix relative pathnames.kss
+with-glibc-version :: Indicates which version of glibc we're going to target.
+with-sysroot :: Specifies the system root and allows us to specify a different
+root path than that of the currently-running kernel.
+with-newlib :: Prevents any code which requires libc from being compiled (because we haven't built libc yet).
+without-headers :: If building a full-blown cross-compiler, GCC needs the header files compatible with the target system. This argument instructs configure and make not to look for them, as we don't need them for this stage.
+with-local-prefix :: This instructs configure and make to search the specified directory for include files.
+with-native-system-header-dir :: This changes the default include path for headers (which is normally /usr/include) to /tools/include. Without this switch, GCC will look in the default location for include files, and that will break our build since our header files are located in /tools/include.
+disable-shared :: Advises GCC to avoid performing static linking. This is a good idea simply because it avoids any conflicts that might arise if GCC were built to use shared libraries, as the system linker might attempt to link them with the libraries installed on the build system.
+disable-decimal :: This GCC extension is not compatible when building GCC for cross compilation.
+disable-float :: See disable-decimal.
+disable-threads :: See disable-decimal.
+disable-libatomic :: See disable-decimal.
+disable-libgomp :: See disable-decimal.
+disable-libmpx :: See disable-decimal.
+disable-libquadmath :: See disable-decimal.
+disable-libssp :: See disable-decimal.
+disable-libvtv :: See disable-decimal.
+disable-libstdcxx :: See disable-decimal.
+disable-multilib :: This functionality isn't supported on the x86_64 platform.
+enable-languages :: For this stage, we need GCC to compile only C and C++. This disables the compilation of compilers for other languages.
