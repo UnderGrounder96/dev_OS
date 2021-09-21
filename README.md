@@ -18,6 +18,8 @@ one could build `dev_OS` by running:
 ```bash
 vagrant plugin install vagrant-hostmanager vagrant-scp
 
+# execute wget to download all build packages/files to bin/, using config/packages_list.txt
+
 bash vagrant_start.sh
 ```
 

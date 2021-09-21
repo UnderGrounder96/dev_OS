@@ -104,14 +104,14 @@ function unload_build_packages(){
     set +e # wget may exit with non-zero code
 
     # sudo wget https://linuxfromscratch.org/lfs/downloads/wget-list --output-document=$ROOT_DIR/config/packages_list.txt
-    sudo wget --no-check-certificate --timestamping --progress=bar:force \
-      --show-progress --rejected-log=$ROOT_DIR/wget_rejected_list.log \
-      --input-file=$ROOT_DIR/config/packages_list.txt --directory-prefix=$BROOT/source
+    # sudo wget --no-check-certificate --timestamping --progress=bar:force \
+    #   --show-progress --rejected-log=$ROOT_DIR/wget_rejected_list.log \
+    #   --input-file=$ROOT_DIR/config/packages_list.txt --directory-prefix=$ROOT_DIR/source
 
     set -e
 
     pushd $BROOT/source
-      # sudo cp -v $ROOT_DIR/logs/* . # offline packages unloading
+      sudo cp -v $ROOT_DIR/bin/* . # offline packages unloading
       find -name "*.tar*" -exec tar -xvf {} \;
     popd
 }
