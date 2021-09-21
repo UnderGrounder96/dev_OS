@@ -23,6 +23,18 @@ vagrant plugin install vagrant-hostmanager vagrant-scp
 bash vagrant_start.sh
 ```
 
+## Post-requisites (optional)
+
+Install [OpenJDK](https://openjdk.java.net/install/) v11 and [Jenkins](https://www.jenkins.io/doc/book/installing/linux/).
+Once the installation is complete, please execute the following commands:
+
+```bash
+sudo usermod jenkins -aG %admin # admin: wheel (fedora/centos) or sudo (debian/ubuntu)
+sudo mkdir -v /source
+# perform a wget to download all build packages/files /source, using config/packages_list.txt
+# create and run a pipeline
+```
+
 ## Author
 
 Lucio Afonso (Developer),
