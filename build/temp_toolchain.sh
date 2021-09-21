@@ -13,7 +13,13 @@ source ~/.bashrc
 
 function clean_cwd(){
     _logger_info "Removing everything from $PWD"
-    sudo rm -rf {*,.*}
+
+    local cwd=$PWD
+
+    cd $cwd/..
+    sudo rm -rf $cwd
+    mkdir -vp $cwd
+    cd $cwd
 }
 
 function compile_binutils(){
