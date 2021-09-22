@@ -27,7 +27,7 @@ function clean_tmp_dir(){
 
 
 function deps_install(){
-    bash $ROOT_DIR/lib/deps.sh
+    bash $ROOT_DIR/build/deps.sh
 }
 
 function build_toolchain(){
