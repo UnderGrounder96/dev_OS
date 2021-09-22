@@ -63,3 +63,27 @@ disable-libvtv :: See disable-decimal.
 disable-libstdcxx :: See disable-decimal.
 disable-multilib :: This functionality isn't supported on the x86_64 platform.
 enable-languages :: For this stage, we need GCC to compile only C and C++. This disables the compilation of compilers for other languages.
+
+------------------------------------------------------------------------------------------------------------------------------
+
+The "libc_cv_forced_unwind" variable impacts the handling of the libc-cv-force-unwind configuration parameter. The linker we installed when we compiled binutils is cross-compiled and cannot make use of the libc-cv-force-unwind option unless glibc is present. This variable disables this test.
+
+The "libc_cv_c_cleanup" variables instruct configure to disable the test for this functionality, again for the same reasons given for libc\_cv\_forced\_unwind.
+
+The commands for the configuration process should look like this:
+
+export libc_cv_forced_unwind=yes
+export libc_cv_c_cleanup=yes
+
+../glibc-2.33/configure                         \
+  --prefix=/tools                               \
+  --host=$BTARGET                               \
+  --build=$(../glibc-2.33/scripts/config.guess) \
+  --enable-kernel=3.2                           \
+  --with-headers=/tools/include
+
+prefix :: Instructs make to use the specified path to prefix's relative pathnames.
+host :: Tells make to use the target triplet located in our environment variable.
+build :: Combined with the host flag, this instructs glibc's build system to configure itself to cross compile, using the cross-linker and compiler in /tools.
+enable-kernel :: Instructs glibc to use workarounds for this specific version (and later) of the kernel.
+with-headers :: Specifies the location of header files, so libc knows what features the kernel has and can configure itself accordingly.

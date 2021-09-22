@@ -113,6 +113,30 @@ function install_kernel_headers(){
     popd
 }
 
+function compile_glibc(){
+    _logger_info "Compiling GNU C Library"
+
+    pushd $BROOT/source/glibc-2.33
+      patch -Np1 -i ../glibc-2.33-fhs-1.patch
+    popd
+
+    export libc_cv_forced_unwind=yes
+    export libc_cv_c_cleanup=yes
+
+    ../glibc-2.33/configure                         \
+      --prefix=/tools                               \
+      --host=$BTARGET                               \
+      --build=$(../glibc-2.33/scripts/config.guess) \
+      --enable-kernel=3.2                           \
+      --with-headers=/tools/include
+
+    make
+    make install
+
+    unset libc_cv_forced_unwind
+    unset libc_cv_c_cleanup
+}
+
 function main(){
     unload_build_packages
 
@@ -123,6 +147,9 @@ function main(){
     clean_cwd
 
     install_kernel_headers
+
+    compile_glibc
+    clean_cwd
 
     exit 0
 }
