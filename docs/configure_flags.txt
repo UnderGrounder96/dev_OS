@@ -87,3 +87,18 @@ host :: Tells make to use the target triplet located in our environment variable
 build :: Combined with the host flag, this instructs glibc's build system to configure itself to cross compile, using the cross-linker and compiler in /tools.
 enable-kernel :: Instructs glibc to use workarounds for this specific version (and later) of the kernel.
 with-headers :: Specifies the location of header files, so libc knows what features the kernel has and can configure itself accordingly.
+
+------------------------------------------------------------------------------------------------------------------------------
+
+../gcc-10.2.0/libstdc++-v3/configure         \
+  --host=$BTARGET                            \
+  --prefix=/tools                            \
+  --disable-multilib                         \
+  --disable-nls                              \
+  --disable-libstdcxx-threads                \
+  --disable-libstdcxx-pch                    \
+  --with-gxx-include-dir=/tools/$BTARGET/include/c++/6.2.0
+
+host :: Specifies the use the cross compiler we have just built instead of the one in /usr/bin.
+disable-libstdcxx-pch :: This switch prevents the installation of precompiled include files, which are not needed at this stage.
+with-gxx-include-dir :: This is the location where the C++ compiler should search for the standard include files. In a normal build, this information is automatically passed to the libstdc++ configure options from the top level directory. In our case, this information must be explicitly given.

@@ -130,7 +130,8 @@ function compile_glibc(){
       --enable-kernel=3.2                           \
       --with-headers=/tools/include
 
-    make
+    make # --jobs 9 may fail
+
     make install
 
     unset libc_cv_forced_unwind
@@ -150,6 +151,23 @@ function test_toolchain(){
     rm -vf dummy.c a.out
 }
 
+function compile_glibcpp(){
+    _logger_info "Compiling GNU C++ Library"
+
+    ../gcc-10.2.0/libstdc++-v3/configure         \
+      --host=$BTARGET                            \
+      --prefix=/tools                            \
+      --disable-multilib                         \
+      --disable-nls                              \
+      --disable-libstdcxx-threads                \
+      --disable-libstdcxx-pch                    \
+      --with-gxx-include-dir=/tools/$BTARGET/include/c++/6.2.0
+
+    make --jobs 9
+
+    make install
+}
+
 function main(){
     unload_build_packages
 
@@ -165,6 +183,9 @@ function main(){
     clean_cwd
 
     test_toolchain
+
+    compile_glibcpp
+    clean_cwd
 
     exit 0
 }
