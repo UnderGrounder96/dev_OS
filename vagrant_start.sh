@@ -8,7 +8,7 @@ set -euo pipefail
 
 EXIT_BUILD_STATUS=0
 
-source config/common.sh
+source configs/common.sh
 
 function vagrant_destroy(){
     _logger_info "WARNING: Destroying Virtual Machine"

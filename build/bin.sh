@@ -11,7 +11,7 @@ LOG_FILE="$ROOT_DIR/logs/build-$(date '+%F_%T').log"
 
 export ROOT_DIR
 
-source $ROOT_DIR/config/common.sh
+source $ROOT_DIR/configs/common.sh
 
 function prepare_tmp_dir(){
     _logger_info "Preparing tmp dir"
@@ -32,7 +32,7 @@ function deps_install(){
 
 function setup_build(){
     cd $BROOT/source/build
-    sudo -u $BUSER env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/setup.sh $ROOT_DIR/config/common.sh
+    sudo -u $BUSER env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/setup.sh $ROOT_DIR/configs/common.sh
 }
 
 function main(){
