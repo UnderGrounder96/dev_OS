@@ -4,7 +4,7 @@
 # description     This script sets up OS build
 # ==============================================================================
 
-set +euo pipefail # strict mode disabled due to possible make fail
+set -euo pipefail
 
 COMMON="${1}"
 
@@ -137,6 +137,19 @@ function compile_glibc(){
     unset libc_cv_c_cleanup
 }
 
+function test_toolchain(){
+    _logger_info "Performing Toolchain test"
+
+    echo 'int main(){}' > dummy.c; $BTARGET-gcc dummy.c
+    local test_glibc=$(readelf -l a.out | grep ': /tools')
+
+    echo $test_glibc | grep -w "/tools/lib64/ld-linux-x86-64.so.2"
+
+    _logger_info "Sanity check - passed"
+
+    rm -vf dummy.c a.out
+}
+
 function main(){
     unload_build_packages
 
@@ -150,6 +163,8 @@ function main(){
 
     compile_glibc
     clean_cwd
+
+    test_toolchain
 
     exit 0
 }
