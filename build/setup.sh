@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
 # author		      @undergrounder96
-# description     This script builds toolchains
+# description     This script sets up OS build
 # ==============================================================================
 
 set +euo pipefail # strict mode disabled due to possible make fail
 
-COMMON=${1}
+COMMON="${1}"
 
 source $COMMON
 source ~/.bashrc
 
-LOG_FILE="$ROOT_DIR/logs/temp_toolchain-$(date '+%F_%T').log"
+LOG_FILE="$ROOT_DIR/logs/setup-$(date '+%F_%T').log"
 
 function clean_cwd(){
     _logger_info "Removing everything from $PWD"

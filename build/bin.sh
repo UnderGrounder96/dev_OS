@@ -30,9 +30,9 @@ function deps_install(){
     bash $ROOT_DIR/build/deps.sh
 }
 
-function build_toolchain(){
+function setup_build(){
     cd $BROOT/source/build
-    sudo -u $BUSER env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/temp_toolchain.sh $ROOT_DIR/config/common.sh
+    sudo -u $BUSER env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/setup.sh $ROOT_DIR/config/common.sh
 }
 
 function main(){
@@ -40,7 +40,7 @@ function main(){
 
     deps_install
 
-    build_toolchain
+    setup_build
 
     clean_tmp_dir
     exit 0
