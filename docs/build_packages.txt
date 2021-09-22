@@ -1,0 +1,16 @@
+# wget build packages
+
+ROOT_DIR=dev_OS/; inside the VM it becomes /vagrant
+
+Execute the following commands to download the build packages:
+
+cd dev_OS/
+ROOT_DIR=$PWD
+
+# Downloads the most recent wget-list from lfs to --output-document=PATH
+wget https://linuxfromscratch.org/lfs/downloads/wget-list --output-document=$ROOT_DIR/config/packages_list.txt
+
+# Gets the packages from the wget-list to --directory-prefix=PATH
+wget --no-check-certificate --timestamping --progress=bar:force \
+  --show-progress --rejected-log=$ROOT_DIR/wget_rejected_list.log \
+  --input-file=$ROOT_DIR/config/packages_list.txt --directory-prefix=$ROOT_DIR/source

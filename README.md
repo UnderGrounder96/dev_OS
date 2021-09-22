@@ -31,7 +31,7 @@ Once the installation is complete, please execute the following commands:
 ```bash
 sudo usermod jenkins -aG %admin # admin: wheel (fedora/centos) or sudo (debian/ubuntu)
 sudo mkdir -v /source
-# perform a wget to download all build packages/files /source, using config/packages_list.txt
+# perform a wget to download all build packages/files to /source, see docs/build_packages.txt
 # create and run a pipeline
 ```
 
