@@ -58,24 +58,22 @@ function compile_binutils(){
 function complice_gcc(){
     _logger_info "Compiling gcc"
 
-    cd ../gcc-10.2.0/
+    pushd $BROOT/source/gcc-10.2.0
+      mv -v ../mpfr-*.*.*/ mpfr/
+      mv -v ../gmp-*.*.*/ gmp/
+      mv -v ../mpc-*.*.*/ mpc/
 
-    mv -v ../mpfr-*.*.*/ mpfr/
-    mv -v ../gmp-*.*.*/ gmp/
-    mv -v ../mpc-*.*.*/ mpc/
-
-    for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do
-        cp -uv $file{,.orig}
-        sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig > $file
-        echo '
+      for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do
+          cp -uv $file{,.orig}
+          sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig > $file
+          echo '
 #undef STANDARD_STARTFILE_PREFIX_1
 #undef STANDARD_STARTFILE_PREFIX_2
 #define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
 #define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
-        touch $file.orig
-    done
-
-    cd ../build
+          touch $file.orig
+      done
+    popd
 
     ../gcc-10.2.0/configure                          \
       --target=$BTARGET                              \
@@ -105,6 +103,16 @@ function complice_gcc(){
     make install
 }
 
+function install_kernel_headers(){
+    _logger_info "Installing Kernel Header Files"
+
+    pushd $BROOT/source/linux-5.10.17
+      make mrproper
+      make INSTALL_HDR_PATH=dest headers_install
+      cp -rv dest/include/* /tools/include
+    popd
+}
+
 function main(){
     unload_build_packages
 
@@ -113,6 +121,8 @@ function main(){
 
     complice_gcc
     clean_cwd
+
+    install_kernel_headers
 
     exit 0
 }
