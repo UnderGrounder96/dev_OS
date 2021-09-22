@@ -24,6 +24,15 @@ function clean_cwd(){
     cd $cwd
 }
 
+function unload_build_packages(){
+    _logger_info "Unloading build packages"
+
+    pushd $BROOT/source
+      cp -v $ROOT_DIR/bin/* . # offline packages unloading
+      find -name "*.tar*" -exec tar -xf {} \;
+    popd
+}
+
 function compile_binutils(){
     _logger_info "Compiling binutils"
 
@@ -35,7 +44,7 @@ function compile_binutils(){
       --disable-nls              \
       --disable-werror
 
-    make --debug --jobs 9
+    make --jobs 9
 
     case $(uname -m) in
         x86_64)
@@ -43,7 +52,7 @@ function compile_binutils(){
             ;;
     esac
 
-    make --debug install
+    make install
 }
 
 function complice_gcc(){
@@ -51,19 +60,19 @@ function complice_gcc(){
 
     cd ../gcc-10.2.0/
 
-    sudo mv -v ../mpfr-*.*.*/ mpfr/
-    sudo mv -v ../gmp-*.*.*/ gmp/
-    sudo mv -v ../mpc-*.*.*/ mpc/
+    mv -v ../mpfr-*.*.*/ mpfr/
+    mv -v ../gmp-*.*.*/ gmp/
+    mv -v ../mpc-*.*.*/ mpc/
 
     for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do
-        sudo cp -uv $file{,.orig}
-        sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig | sudo tee $file 1>/dev/null
+        cp -uv $file{,.orig}
+        sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig > $file
         echo '
 #undef STANDARD_STARTFILE_PREFIX_1
 #undef STANDARD_STARTFILE_PREFIX_2
 #define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-#define STANDARD_STARTFILE_PREFIX_2 ""' | sudo tee -a $file 1>/dev/null
-        sudo touch $file.orig
+#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+        touch $file.orig
     done
 
     cd ../build
@@ -91,12 +100,14 @@ function complice_gcc(){
       --disable-libstdcxx                            \
       --enable-languages=c,c++
 
-    make --debug --jobs 9
+    make --jobs 9
 
-    make --debug install
+    make install
 }
 
 function main(){
+    unload_build_packages
+
     compile_binutils
     clean_cwd
 

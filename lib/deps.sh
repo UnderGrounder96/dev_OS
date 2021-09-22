@@ -56,6 +56,8 @@ function create_build_dirs(){
     sudo mkdir -vp $BROOT/{boot,source/build,logs,tools}
     sudo ln -vs $BROOT/tools / # '/tools' -> '$BROOT/tools'
     sudo chmod -vR 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
+    sudo chown -vh $BUSER /tools # first we change the ownership of the symbolic link
+    sudo chown -vR $BUSER $BROOT
 }
 
 function mount_build_disk(){
@@ -100,16 +102,6 @@ function mount_build_disk(){
     lsblk
 }
 
-function unload_build_packages(){
-    _logger_info "Unloading build packages"
-
-    pushd $BROOT/source
-      sudo cp -v $ROOT_DIR/bin/* . # offline packages unloading
-      find -name "*.tar*" -exec tar -xvf {} \;
-    popd
-}
-
-
 function main(){
     group_installs
     solo_installs
@@ -119,8 +111,6 @@ function main(){
     create_build_user
 
     mount_build_disk
-
-    unload_build_packages
 
     exit 0
 }
