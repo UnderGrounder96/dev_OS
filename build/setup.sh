@@ -33,8 +33,8 @@ function unload_build_packages(){
     popd
 }
 
-function compile_binutils(){
-    _logger_info "Compiling binutils"
+function compile_binutils_1(){
+    _logger_info "Compiling binutils part 1"
 
     ../binutils-2.36.1/configure \
       --prefix=/tools            \
@@ -46,17 +46,13 @@ function compile_binutils(){
 
     make --jobs 9
 
-    case $(uname -m) in
-        x86_64)
-            mkdir -v /tools/lib && ln -sv lib /tools/lib64
-            ;;
-    esac
+    mkdir -v /tools/lib && ln -sv lib /tools/lib64
 
     make install
 }
 
-function complice_gcc(){
-    _logger_info "Compiling gcc"
+function complice_gcc_1(){
+    _logger_info "Compiling gcc part 1"
 
     pushd $BROOT/source/gcc-10.2.0
       mv -v ../mpfr-*.*.*/ mpfr/
@@ -109,7 +105,7 @@ function install_kernel_headers(){
     pushd $BROOT/source/linux-5.10.17
       make mrproper
       make INSTALL_HDR_PATH=dest headers_install
-      cp -rv dest/include/* /tools/include
+      cp -rfv dest/include /tools
     popd
 }
 
@@ -171,10 +167,10 @@ function compile_glibcpp(){
 function main(){
     unload_build_packages
 
-    compile_binutils
+    compile_binutils_1
     clean_cwd
 
-    complice_gcc
+    complice_gcc_1
     clean_cwd
 
     install_kernel_headers
