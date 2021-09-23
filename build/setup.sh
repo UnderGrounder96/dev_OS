@@ -33,6 +33,8 @@ function unload_build_packages(){
     popd
 }
 
+# --------------------------- STAGE 1 ------------------------------------------
+
 function compile_binutils_1(){
     _logger_info "Compiling binutils part 1"
 
@@ -164,8 +166,36 @@ function compile_glibcpp(){
     make install
 }
 
+# --------------------------- STAGE 2 ------------------------------------------
+
+function compile_binutils_2(){
+    _logger_info "Compiling binutils part 2"
+
+    export CC=$BTARGET-gcc
+    export AR=$BTARGET-ar
+    export RANLIB=$BTARGET-ranlib
+
+    ../binutils-2.36.1/configure \
+      --prefix=/tools            \
+      --disable-nls              \
+      --disable-werror           \
+      --with-lib-path=/tools/lib \
+      --with-sysroot
+
+    make --jobs 9
+
+    make install
+
+    make --directory ld clean
+    make --directory ld LIB_PATH=/usr/lib:/lib
+
+    cp -v ld/ld-new /tools/bin
+}
+
 function main(){
     unload_build_packages
+
+# ------- STAGE 1 -------
 
     compile_binutils_1
     clean_cwd
@@ -181,6 +211,11 @@ function main(){
     test_toolchain
 
     compile_glibcpp
+    clean_cwd
+
+# ------- STAGE 2 -------
+
+    compile_binutils_2
     clean_cwd
 
     exit 0

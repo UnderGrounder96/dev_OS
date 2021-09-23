@@ -1,6 +1,8 @@
 # Configure flags
 ## Explanation from buildyourownlinux
 
+--------------------------------------------------- Stage 1 --------------------------------------------------------------------
+
 ../binutils-2.36.1/configure \
   --prefix=/tools            \
   --with-sysroot=$BROOT      \
@@ -102,3 +104,19 @@ with-headers :: Specifies the location of header files, so libc knows what featu
 host :: Specifies the use the cross compiler we have just built instead of the one in /usr/bin.
 disable-libstdcxx-pch :: This switch prevents the installation of precompiled include files, which are not needed at this stage.
 with-gxx-include-dir :: This is the location where the C++ compiler should search for the standard include files. In a normal build, this information is automatically passed to the libstdc++ configure options from the top level directory. In our case, this information must be explicitly given.
+
+--------------------------------------------------- Stage 2 --------------------------------------------------------------------
+
+export CC=$BTARGET-gcc
+export AR=$BTARGET-ar
+export RANLIB=$BTARGET-ranlib
+
+../binutils-2.36.1/configure \
+  --prefix=/tools            \
+  --disable-nls              \
+  --disable-werror           \
+  --with-lib-path=/tools/lib \
+  --with-sysroot
+
+with-sysroot :: Specifying no value here enables the linker to find shared libraries required by other objects. Without this flag, make may not be able to locate and link some required libraries.
+with-lib-path :: Here we're instructing make to use the specified directory explicitly.
