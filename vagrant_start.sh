@@ -15,7 +15,7 @@ function vagrant_destroy(){
     vagrant destroy -f
 }
 
-trap vagrant_destroy EXIT
+# trap vagrant_destroy EXIT
 
 
 function main(){

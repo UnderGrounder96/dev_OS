@@ -71,9 +71,6 @@ function compile_gcc_1(){
 #define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
           touch $file.orig
       done
-      	sed -i -e 's@/lib/ld-linux.so.2@/lib32/ld-linux.so.2@g' gcc/config/i386/linux64.h
-	sed -i -e '/MULTILIB_OSDIRNAMES/d' gcc/config/i386/t-linux64
-	echo "MULTILIB_OSDIRNAMES = m64=../lib m32=../lib32 mx32=../libx32" >> gcc/config/i386/t-linux64
     popd
 
     ../gcc-10.2.0/configure                          \
@@ -246,6 +243,20 @@ function compile_tcl(){
     popd
 }
 
+function compile_expect(){
+    _logger_info "Compiling expect"
+
+    pushd ../expect*.*.*/
+      cp -v configure{,.orig}
+
+      sed 's:/usr/local/bin:/bin:' configure.orig > configure
+
+      ./configure --prefix=/tools --with-tcl=/tools/lib --with-tclinclude=/tools/include
+
+      make SCRIPTS="" install # will skip including supplemental scripts
+    popd
+}
+
 function main(){
     unload_build_packages
 
@@ -279,7 +290,9 @@ function main(){
 
 # ---- PACKAGES/UTILS ----
 
-    complice_tcl
+    compile_tcl
+
+    compile_expect
 
     exit 0
 }
