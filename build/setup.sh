@@ -257,6 +257,63 @@ function compile_expect(){
     popd
 }
 
+function compile_dejagnu(){
+    _logger_info "Compiling dejagnu"
+
+    pushd ../dejagnu-*.*.*/
+      ./configure --prefix=/tools
+
+      make install
+    popd
+}
+
+function compile_check(){
+    _logger_info "Compiling check"
+
+    pushd ../check-*.*.*/
+      PKG_CONFIG= ./configure --prefix=/tools # PKG_CONFIG= prevents any pre-defined pkg-config options
+
+      make --jobs 9
+
+      make install
+    popd
+}
+
+function compile_ncurses(){
+    _logger_info "Compiling ncurses"
+
+    pushd ../ncurses-*.*/
+      sed -i 's/mawk//' configure # ensures that gawk command is found before awk
+
+      ./configure --prefix=/tools \
+        --with-shared             \
+        --without-debug           \
+        --without-ada             \
+        --enable-widec            \
+        --enable-overwrite
+
+      make --jobs 9
+
+      make install
+
+      ln -sv libncursesw.so /tools/lib/libncurses.so
+    popd
+}
+
+function compile_bash(){
+    _logger_info "Compiling bash"
+
+    pushd ../bash-*.*/
+      ./configure --prefix=/tools --without-bash-malloc
+
+      make --jobs 9
+
+      make install
+
+      ln -sv bash /tools/bin/sh
+    popd
+}
+
 function main(){
     unload_build_packages
 
@@ -291,8 +348,11 @@ function main(){
 # ---- PACKAGES/UTILS ----
 
     compile_tcl
-
     compile_expect
+    compile_dejagnu
+    compile_check
+    compile_ncurses
+    compile_bash
 
     exit 0
 }
