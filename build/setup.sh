@@ -159,7 +159,7 @@ function compile_glibcpp(){
       --disable-nls                              \
       --disable-libstdcxx-threads                \
       --disable-libstdcxx-pch                    \
-      --with-gxx-include-dir=/tools/$BTARGET/include/c++/6.2.0
+      --with-gxx-include-dir=/tools/$BTARGET/include/c++/10.2.0
 
     make --jobs 9
 
