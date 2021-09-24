@@ -226,6 +226,26 @@ function compile_gcc_2(){
     unset CC CXX AR RANLIB
 }
 
+# --------------------------- PACKAGES/UTILS -----------------------------------
+
+function compile_tcl(){
+    _logger_info "Compiling TCL"
+
+    pushd ../tcl*.*.*/unix/
+      ./configure --prefix=/tools
+
+      make --jobs 9
+
+      make install
+
+      chmod -v u+w /tools/lib/libtcl*.*.so
+
+      make install-private-headers
+
+      ln -sv tclsh8.6 /tools/bin/tclsh
+    popd
+}
+
 function main(){
     unload_build_packages
 
@@ -256,6 +276,10 @@ function main(){
     clean_cwd
 
     test_toolchain
+
+# ---- PACKAGES/UTILS ----
+
+    complice_tcl
 
     exit 0
 }
