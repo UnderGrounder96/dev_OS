@@ -53,7 +53,7 @@ function compile_binutils_1(){
     make install
 }
 
-function complice_gcc_1(){
+function compile_gcc_1(){
     _logger_info "Compiling gcc part 1"
 
     pushd $BROOT/source/gcc-10.2.0
@@ -71,6 +71,9 @@ function complice_gcc_1(){
 #define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
           touch $file.orig
       done
+      	sed -i -e 's@/lib/ld-linux.so.2@/lib32/ld-linux.so.2@g' gcc/config/i386/linux64.h
+	sed -i -e '/MULTILIB_OSDIRNAMES/d' gcc/config/i386/t-linux64
+	echo "MULTILIB_OSDIRNAMES = m64=../lib m32=../lib32 mx32=../libx32" >> gcc/config/i386/t-linux64
     popd
 
     ../gcc-10.2.0/configure                          \
@@ -192,6 +195,37 @@ function compile_binutils_2(){
     cp -v ld/ld-new /tools/bin
 }
 
+function compile_gcc_2(){
+    _logger_info "Compiling gcc part 2"
+
+    pushd $BROOT/source/gcc-10.2.0
+      cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $($BTARGET-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+    popd
+
+    export CC=$BTARGET-gcc
+    export CXX=$BTARGET-g++
+    export AR=$BTARGET-ar
+    export RANLIB=$BTARGET-ranlib
+
+    ../gcc-10.2.0/configure                          \
+      --prefix=/tools                                \
+      --with-local-prefix=/tools                     \
+      --with-native-system-header-dir=/tools/include \
+      --enable-languages=c,c++                       \
+      --disable-libstdcxx-pch                        \
+      --disable-multilib                             \
+      --disable-bootstrap                            \
+      --disable-libgomp
+
+    make --jobs 9
+
+    make install
+
+    ln -sv gcc /tools/bin/cc
+
+    unset CC CXX AR RANLIB
+}
+
 function main(){
     unload_build_packages
 
@@ -200,7 +234,7 @@ function main(){
     compile_binutils_1
     clean_cwd
 
-    complice_gcc_1
+    compile_gcc_1
     clean_cwd
 
     install_kernel_headers
@@ -217,6 +251,11 @@ function main(){
 
     compile_binutils_2
     clean_cwd
+
+    compile_gcc_2
+    clean_cwd
+
+    test_toolchain
 
     exit 0
 }
