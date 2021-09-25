@@ -13,4 +13,4 @@ wget https://linuxfromscratch.org/lfs/downloads/wget-list --output-document=$ROO
 # Gets the packages from the wget-list to --directory-prefix=PATH
 wget --no-check-certificate --timestamping --progress=bar:force \
   --show-progress --rejected-log=$ROOT_DIR/wget_rejected_list.log \
-  --input-file=$ROOT_DIR/configs/packages_list.txt --directory-prefix=$ROOT_DIR/source
+  --input-file=$ROOT_DIR/configs/packages_list.txt --directory-prefix=$ROOT_DIR/bin

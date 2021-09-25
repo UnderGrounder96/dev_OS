@@ -3,6 +3,10 @@
 pipeline{
     agent any
 
+    environment {
+        BVERSION = '1.0.0'
+    }
+
     options {
         timestamps()
         disableConcurrentBuilds()
@@ -11,8 +15,14 @@ pipeline{
     stages{
         stage("Build"){
             steps{
-                echo "========Copying packages========"
-                sh 'cp -v /source/* bin/'
+                echo "========Copying backup/packages========"
+                sh """
+                if [ -f /dev_OS_build/backup-temp-tools-${env.BVERSION}.tar.xz ]; then
+                    cp -v /dev_OS_build/backup-temp-tools-${env.BVERSION}.tar.xz backup/
+                else
+                    cp -v /dev_OS_build/source/* bin/
+                fi
+                """
 
                 echo "========Executing Build========"
                 sh 'bash vagrant_start.sh'
