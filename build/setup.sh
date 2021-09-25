@@ -50,7 +50,7 @@ function compile_binutils_1(){
 
     mkdir -v /tools/lib && ln -sv lib /tools/lib64
 
-    make install
+    make --jobs 9 install
 }
 
 function compile_gcc_1(){
@@ -98,15 +98,15 @@ function compile_gcc_1(){
 
     make --jobs 9
 
-    make install
+    make --jobs 9 install
 }
 
 function install_kernel_headers(){
     _logger_info "Installing Kernel Header Files"
 
     pushd $BROOT/source/linux-5.10.17
-      make mrproper
-      make INSTALL_HDR_PATH=dest headers_install
+      make --jobs 9 mrproper
+      make --jobs 9 INSTALL_HDR_PATH=dest headers_install
       cp -rfv dest/include /tools
     popd
 }
@@ -128,9 +128,9 @@ function compile_glibc(){
       --enable-kernel=3.2                           \
       --with-headers=/tools/include
 
-    make # --jobs 9 may fail
+    make --jobs 9
 
-    make install
+    make --jobs 9 install
 
     unset libc_cv_forced_unwind
     unset libc_cv_c_cleanup
@@ -163,7 +163,7 @@ function compile_glibcpp(){
 
     make --jobs 9
 
-    make install
+    make --jobs 9 install
 }
 
 # --------------------------- STAGE 2 ------------------------------------------
@@ -184,7 +184,7 @@ function compile_binutils_2(){
 
     make --jobs 9
 
-    make install
+    make --jobs 9 install
 
     make --directory ld clean
     make --directory ld LIB_PATH=/usr/lib:/lib
@@ -216,7 +216,7 @@ function compile_gcc_2(){
 
     make --jobs 9
 
-    make install
+    make --jobs 9 install
 
     ln -sv gcc /tools/bin/cc
 
@@ -233,11 +233,11 @@ function compile_tcl(){
 
       make --jobs 9
 
-      make install
+      make --jobs 9 install
 
       chmod -v u+w /tools/lib/libtcl*.*.so
 
-      make install-private-headers
+      make --jobs 9 install-private-headers
 
       ln -sv tclsh8.6 /tools/bin/tclsh
     popd
@@ -263,7 +263,7 @@ function compile_dejagnu(){
     pushd ../dejagnu-*.*.*/
       ./configure --prefix=/tools
 
-      make install
+      make --jobs 9 install
     popd
 }
 
@@ -275,7 +275,7 @@ function compile_check(){
 
       make --jobs 9
 
-      make install
+      make --jobs 9 install
     popd
 }
 
@@ -294,7 +294,7 @@ function compile_ncurses(){
 
       make --jobs 9
 
-      make install
+      make --jobs 9 install
 
       ln -sv libncursesw.so /tools/lib/libncurses.so
     popd
@@ -308,7 +308,7 @@ function compile_bash(){
 
       make --jobs 9
 
-      make install
+      make --jobs 9 install
 
       ln -sv bash /tools/bin/sh
     popd
