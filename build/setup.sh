@@ -314,6 +314,152 @@ function compile_bash(){
     popd
 }
 
+function compile_bzip2(){
+    _logger_info "Compiling bzip2"
+
+    pushd ../bzip2-*.*.*/
+      make -f Makefile-libbz2_so
+
+      make clean
+
+      make --jobs 9
+
+      make --jobs 9 PREFIX=/tools install
+
+      cp -v bzip2-shared /tools/bin/bzip2
+      cp -av libbz2.so* /tools/lib
+
+      ln -sv libbz2.so.1.0 /tools/lib/libbz2.so
+    popd
+}
+
+function compile_coreutils(){
+    _logger_info "Compiling coreutils"
+
+    pushd ../coreutils-*.*/
+    	./configure --prefix=/tools --enable-install-program=hostname
+
+      make --jobs 9
+
+      make --jobs 9 install
+    popd
+}
+
+function compile_gettext(){
+    _logger_info "Compiling gettext"
+
+    pushd ../gettext-*.*/
+    	EMACS= ./configure --prefix=/tools --disable-shared
+
+      make --jobs 9
+
+      cp -v gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
+    popd
+}
+
+function compile_make(){
+    _logger_info "Compiling make"
+
+    pushd ../make-*.*/
+    	./configure --prefix=/tools --without-guile
+
+      make --jobs 9
+
+      make --jobs 9 install
+    popd
+}
+
+function compile_perl(){
+    _logger_info "Compiling perl"
+
+    pushd ../perl-*.*.*/
+    	sh Configure -des -Dprefix=/tools -Dlibs=-lm
+
+      make --jobs 9
+
+      cp -v perl cpan/podlators/scripts/pod2man /tools/bin
+
+      mkdir -vp /tools/lib/perl5/5.32.1
+
+      cp -rv lib/* /tools/lib/perl5/5.32.1
+    popd
+}
+
+function compile_python(){
+    _logger_info "Compiling Python"
+
+    pushd ../Python-*.*.*/
+    	# sed -i '/def add_multiarch_paths/a \        return' setup.py
+      ./configure --prefix=/tools --enable-shared --without-ensurepip
+
+      make --jobs 9
+
+      make --jobs 9 install
+    popd
+}
+
+function compile_util-linux(){
+    _logger_info "Compiling util-linux"
+
+    pushd ../util-linux-*.*.*/
+    	PKG_CONFIG= ./configure --prefix=/tools \
+        --without-python                      \
+        --disable-makeinstall-chown           \
+        --without-systemdsystemunitdir
+
+      make --jobs 9
+
+      make --jobs 9 install
+    popd
+}
+
+function compile_openssl(){
+    _logger_info "Compiling openssl"
+
+    pushd ../openssl-*.*.*/
+      ./config --prefix=/tools             \
+        --openssldir=/tools/etc/ssl        \
+        --libdir=lib                       \
+        shared                             \
+        no-ssl3-method
+
+      make --jobs 9
+
+      make --jobs 9 MANDIR=/tools/share/man MANSUFFIX=ssl install
+    popd
+}
+
+function compile_basic_packages(){
+  	# fixes required by glibc-2.28
+	  sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' ../m4-*.*/lib/*.c
+	  echo "#define _IO_IN_BACKUP 0x100" >> ../m4-*.*/lib/stdio-impl.h
+
+    for pkg in {diffutils,file,findutils,gawk,grep,gzip,m4,patch,sed,tar,texinfo,xz}; do
+        _logger_info "Compiling $pkg"
+
+        pushd ../$pkg-*.*/
+          ./configure --prefix=/tools
+
+          make --jobs 9
+
+          make --jobs 9 install
+        popd
+    done
+}
+
+# --------------------------- CLEANING -----------------------------------
+
+function compilation_stripping(){
+    _logger_info "Compilation Cleaning"
+
+    strip --strip-debug /tools/lib/* || true
+    /usr/bin/strip --strip-unneeded /tools/{,s}bin/* || true
+
+    rm -rf /tools/{info,man,doc} /tools/share/{info,man,doc}
+
+    find /tools/lib{,exec} -name \*.la -delete
+}
+
 function main(){
     unload_build_packages
 
@@ -353,6 +499,19 @@ function main(){
     compile_check
     compile_ncurses
     compile_bash
+    compile_bzip2
+    compile_coreutils
+    compile_gettext
+    compile_make
+    compile_perl
+    compile_python
+    compile_util-linux
+    compile_openssl
+    compile_basic_packages
+
+# ---- CLEANING ----
+
+    compilation_stripping
 
     exit 0
 }

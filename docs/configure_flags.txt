@@ -120,3 +120,14 @@ export RANLIB=$BTARGET-ranlib
 
 with-sysroot :: Specifying no value here enables the linker to find shared libraries required by other objects. Without this flag, make may not be able to locate and link some required libraries.
 with-lib-path :: Here we're instructing make to use the specified directory explicitly.
+
+------------------------------------------------------------------------------------------------------------------------------
+
+PKG_CONFIG= ./util-linux-*.*.*/configure --prefix=/tools \
+  --without-python                      \
+  --disable-makeinstall-chown           \
+  --without-systemdsystemunitdir
+
+without-python :: This disables the Python bindings, which we don't need at this point.
+disable-makeinstall-chown :: make tries to change the owner of the binaries after copying them into place. This requires root permissions, however, so we disable this.
+without-systemdsystemunitdir :: This instructs make to skip the installation of systemd-specific files.
