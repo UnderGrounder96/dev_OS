@@ -25,6 +25,8 @@ function clean_cwd(){
 }
 
 function unload_build_packages(){
+    [ -f "$BROOT/backup/VERSION" ] && exit 0 # checks if there is a temp-tools backup
+
     _logger_info "Unloading build packages"
 
     pushd $BROOT/source
@@ -447,7 +449,7 @@ function compile_basic_packages(){
     done
 }
 
-# --------------------------- CLEANING -----------------------------------
+# --------------------------- CLEANING/BACKUP -----------------------------------
 
 function compilation_stripping(){
     _logger_info "Compilation Cleaning"
@@ -455,9 +457,17 @@ function compilation_stripping(){
     strip --strip-debug /tools/lib/* || true
     /usr/bin/strip --strip-unneeded /tools/{,s}bin/* || true
 
-    rm -rf /tools/{info,man,doc} /tools/share/{info,man,doc}
+    rm -rf /tools/{,share}/{info,man,doc}
 
     find /tools/lib{,exec} -name \*.la -delete
+}
+
+function backup_temp-tools(){
+    _logger_info "Backing up build temptools"
+
+    cd $BROOT
+
+    sudo tar --ignore-failed-read -cJpf $ROOT_DIR/backup-temp-tools-$BVERSION.tar.xz .
 }
 
 function main(){
@@ -509,9 +519,10 @@ function main(){
     compile_openssl
     compile_basic_packages
 
-# ---- CLEANING ----
+# --- CLEANING/BACKUP ---
 
     compilation_stripping
+    backup_temp-tools
 
     exit 0
 }

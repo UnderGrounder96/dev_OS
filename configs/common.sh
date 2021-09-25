@@ -10,6 +10,7 @@ set -euo pipefail
 BUSER="byol"
 BROOT="/build"
 BTARGET="x86_64-BROOT-linux-gnu"
+BVERSION="1.0.0"
 
 # functions
 function _logger_info(){
@@ -17,4 +18,4 @@ function _logger_info(){
 }
 
 export -f _logger_info
-export BUSER BROOT BTARGET
+export BUSER BROOT BTARGET BVERSION

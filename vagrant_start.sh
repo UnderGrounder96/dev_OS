@@ -37,6 +37,11 @@ function main(){
     _logger_info "Acquiring build logs"
     vagrant scp ":/vagrant/logs/*.log*" logs/ # if scp below v0.5, see https://github.com/hashicorp/vagrant/issues/12504
 
+    _logger_info "WARNING: Backing up build toolchain"
+    vagrant scp ":/vagrant/backup*$BVERSION*.tar*" backup/ || {
+        _logger_info "ERROR: Build toolchain was not backed up"
+    }
+
     exit $EXIT_BUILD_STATUS
 }
 

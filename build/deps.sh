@@ -102,6 +102,19 @@ function mount_build_disk(){
     lsblk
 }
 
+function restore_temp-tools(){
+    if [ -f "$ROOT_DIR/backup/backup-temp-tools-$BVERSION.tar.xz" ]; then
+        _logger_info "Restoring build temptools"
+
+        cd $BROOT
+
+        sudo tar -xpf $ROOT_DIR/backup/backup*$BVERSION*.tar*
+
+        mkdir -vp $BROOT/backup
+        echo $BVERSION > $BROOT/backup/VERSION
+    fi
+}
+
 function main(){
     group_installs
     solo_installs
@@ -111,6 +124,8 @@ function main(){
     create_build_user
 
     mount_build_disk
+
+    restore_temp-tools
 
     exit 0
 }
