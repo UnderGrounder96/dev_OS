@@ -30,8 +30,8 @@ function unload_build_packages(){
     _logger_info "Unloading build packages"
 
     pushd $BROOT/source
-      cp -v $ROOT_DIR/bin/* . # offline packages unloading
-      find -name "*.tar*" -exec tar -xf {} \;
+      cp -fv $ROOT_DIR/bin/* . # offline packages unloading
+      find -name "*.tar*" -exec tar -xf {} \; -delete
     popd
 }
 
@@ -40,7 +40,7 @@ function unload_build_packages(){
 function compile_binutils_1(){
     _logger_info "Compiling binutils part 1"
 
-    ../binutils-2.36.1/configure \
+    ../binutils-*/configure \
       --prefix=/tools            \
       --with-sysroot=$BROOT      \
       --with-lib-path=/tools/lib \
@@ -50,7 +50,7 @@ function compile_binutils_1(){
 
     make --jobs 9
 
-    mkdir -v /tools/lib && ln -sv lib /tools/lib64
+    mkdir -v /tools/lib && ln -sfv lib /tools/lib64
 
     make --jobs 9 install
 }
@@ -59,9 +59,9 @@ function compile_gcc_1(){
     _logger_info "Compiling gcc part 1"
 
     pushd $BROOT/source/gcc-10.2.0
-      mv -v ../mpfr-*.*.*/ mpfr/
-      mv -v ../gmp-*.*.*/ gmp/
-      mv -v ../mpc-*.*.*/ mpc/
+      mv -v ../mpfr-*/ mpfr/
+      mv -v ../gmp-*/ gmp/
+      mv -v ../mpc-*/ mpc/
 
       for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do
           cp -uv $file{,.orig}
@@ -106,7 +106,7 @@ function compile_gcc_1(){
 function install_kernel_headers(){
     _logger_info "Installing Kernel Header Files"
 
-    pushd $BROOT/source/linux-5.10.17
+    pushd $BROOT/source/linux-*
       make --jobs 9 mrproper
       make --jobs 9 INSTALL_HDR_PATH=dest headers_install
       cp -rfv dest/include /tools
@@ -116,17 +116,17 @@ function install_kernel_headers(){
 function compile_glibc(){
     _logger_info "Compiling GNU C Library"
 
-    pushd $BROOT/source/glibc-2.33
-      patch -Np1 -i ../glibc-2.33-fhs-1.patch
+    pushd $BROOT/source/glibc-*
+      patch -Np1 -i ../glibc-*-fhs-1.patch
     popd
 
     export libc_cv_forced_unwind=yes
     export libc_cv_c_cleanup=yes
 
-    ../glibc-2.33/configure                         \
+    ../glibc-*/configure                            \
       --prefix=/tools                               \
       --host=$BTARGET                               \
-      --build=$(../glibc-2.33/scripts/config.guess) \
+      --build=$(../glibc-*/scripts/config.guess)    \
       --enable-kernel=3.2                           \
       --with-headers=/tools/include
 
@@ -177,7 +177,7 @@ function compile_binutils_2(){
     export AR=$BTARGET-ar
     export RANLIB=$BTARGET-ranlib
 
-    ../binutils-2.36.1/configure \
+    ../binutils-*/configure      \
       --prefix=/tools            \
       --disable-nls              \
       --disable-werror           \
@@ -191,7 +191,7 @@ function compile_binutils_2(){
     make --directory ld clean
     make --directory ld LIB_PATH=/usr/lib:/lib
 
-    cp -v ld/ld-new /tools/bin
+    cp -fv ld/ld-new /tools/bin
 }
 
 function compile_gcc_2(){
@@ -220,7 +220,7 @@ function compile_gcc_2(){
 
     make --jobs 9 install
 
-    ln -sv gcc /tools/bin/cc
+    ln -sfv gcc /tools/bin/cc
 
     unset CC CXX AR RANLIB
 }
@@ -230,7 +230,7 @@ function compile_gcc_2(){
 function compile_tcl(){
     _logger_info "Compiling TCL"
 
-    pushd ../tcl*.*.*/unix/
+    pushd ../tcl*/unix/
       ./configure --prefix=/tools
 
       make --jobs 9
@@ -241,28 +241,32 @@ function compile_tcl(){
 
       make --jobs 9 install-private-headers
 
-      ln -sv tclsh8.6 /tools/bin/tclsh
+      ln -sfv tclsh8.6 /tools/bin/tclsh
     popd
 }
 
 function compile_expect(){
     _logger_info "Compiling expect"
 
-    pushd ../expect*.*.*/
-      cp -v configure{,.orig}
+    pushd ../expect*/
+      cp -fv configure{,.orig}
 
       sed 's:/usr/local/bin:/bin:' configure.orig > configure
 
-      ./configure --prefix=/tools --with-tcl=/tools/lib --with-tclinclude=/tools/include
+      ./configure --prefix=/tools       \
+        --with-tcl=/tools/lib           \
+        --with-tclinclude=/tools/include
 
-      make SCRIPTS="" install # will skip including supplemental scripts
+      make --jobs 9
+
+      make --jobs 9 SCRIPTS="" install # will skip including supplemental scripts
     popd
 }
 
 function compile_dejagnu(){
     _logger_info "Compiling dejagnu"
 
-    pushd ../dejagnu-*.*.*/
+    pushd ../dejagnu-*/
       ./configure --prefix=/tools
 
       make --jobs 9 install
@@ -272,7 +276,7 @@ function compile_dejagnu(){
 function compile_check(){
     _logger_info "Compiling check"
 
-    pushd ../check-*.*.*/
+    pushd ../check-*/
       PKG_CONFIG= ./configure --prefix=/tools # PKG_CONFIG= prevents any pre-defined pkg-config options
 
       make --jobs 9
@@ -284,7 +288,7 @@ function compile_check(){
 function compile_ncurses(){
     _logger_info "Compiling ncurses"
 
-    pushd ../ncurses-*.*/
+    pushd ../ncurses-*/
       sed -i 's/mawk//' configure # ensures that gawk command is found before awk
 
       ./configure --prefix=/tools \
@@ -298,28 +302,28 @@ function compile_ncurses(){
 
       make --jobs 9 install
 
-      ln -sv libncursesw.so /tools/lib/libncurses.so
+      ln -sfv libncursesw.so /tools/lib/libncurses.so
     popd
 }
 
 function compile_bash(){
     _logger_info "Compiling bash"
 
-    pushd ../bash-*.*/
+    pushd ../bash-*/
       ./configure --prefix=/tools --without-bash-malloc
 
       make --jobs 9
 
       make --jobs 9 install
 
-      ln -sv bash /tools/bin/sh
+      ln -sfv bash /tools/bin/sh
     popd
 }
 
 function compile_bzip2(){
     _logger_info "Compiling bzip2"
 
-    pushd ../bzip2-*.*.*/
+    pushd ../bzip2-*/
       make -f Makefile-libbz2_so
 
       make clean
@@ -328,17 +332,17 @@ function compile_bzip2(){
 
       make --jobs 9 PREFIX=/tools install
 
-      cp -v bzip2-shared /tools/bin/bzip2
-      cp -av libbz2.so* /tools/lib
+      cp -fv bzip2-shared /tools/bin/bzip2
+      cp -afv libbz2.so* /tools/lib
 
-      ln -sv libbz2.so.1.0 /tools/lib/libbz2.so
+      ln -sfv libbz2.so.1.0 /tools/lib/libbz2.so
     popd
 }
 
 function compile_coreutils(){
     _logger_info "Compiling coreutils"
 
-    pushd ../coreutils-*.*/
+    pushd ../coreutils-*/
     	./configure --prefix=/tools --enable-install-program=hostname
 
       make --jobs 9
@@ -350,19 +354,19 @@ function compile_coreutils(){
 function compile_gettext(){
     _logger_info "Compiling gettext"
 
-    pushd ../gettext-*.*/
-    	EMACS= ./configure --prefix=/tools --disable-shared
+    pushd ../gettext-*/
+    	EMACS="no" ./configure --prefix=/tools --disable-shared
 
       make --jobs 9
 
-      cp -v gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
+      cp -fv gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
     popd
 }
 
 function compile_make(){
     _logger_info "Compiling make"
 
-    pushd ../make-*.*/
+    pushd ../make-*/
     	./configure --prefix=/tools --without-guile
 
       make --jobs 9
@@ -374,23 +378,23 @@ function compile_make(){
 function compile_perl(){
     _logger_info "Compiling perl"
 
-    pushd ../perl-*.*.*/
+    pushd ../perl-5.32.1/
     	sh Configure -des -Dprefix=/tools -Dlibs=-lm
 
       make --jobs 9
 
-      cp -v perl cpan/podlators/scripts/pod2man /tools/bin
+      cp -fv perl cpan/podlators/scripts/pod2man /tools/bin
 
       mkdir -vp /tools/lib/perl5/5.32.1
 
-      cp -rv lib/* /tools/lib/perl5/5.32.1
+      cp -rfv lib/* /tools/lib/perl5/5.32.1
     popd
 }
 
 function compile_python(){
     _logger_info "Compiling Python"
 
-    pushd ../Python-*.*.*/
+    pushd ../Python-*/
     	# sed -i '/def add_multiarch_paths/a \        return' setup.py
       ./configure --prefix=/tools --enable-shared --without-ensurepip
 
@@ -403,11 +407,12 @@ function compile_python(){
 function compile_util-linux(){
     _logger_info "Compiling util-linux"
 
-    pushd ../util-linux-*.*.*/
+    pushd ../util-linux-*/
     	PKG_CONFIG= ./configure --prefix=/tools \
         --without-python                      \
         --disable-makeinstall-chown           \
-        --without-systemdsystemunitdir
+        --without-systemdsystemunitdir        \
+        --without-ncurses
 
       make --jobs 9
 
@@ -418,7 +423,7 @@ function compile_util-linux(){
 function compile_openssl(){
     _logger_info "Compiling openssl"
 
-    pushd ../openssl-*.*.*/
+    pushd ../openssl-*/
       ./config --prefix=/tools             \
         --openssldir=/tools/etc/ssl        \
         --libdir=lib                       \
@@ -433,13 +438,13 @@ function compile_openssl(){
 
 function compile_basic_packages(){
   	# fixes required by glibc-2.28
-	  sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' ../m4-*.*/lib/*.c
-	  echo "#define _IO_IN_BACKUP 0x100" >> ../m4-*.*/lib/stdio-impl.h
+	  sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' ../m4-*/lib/*.c
+	  echo "#define _IO_IN_BACKUP 0x100" >> ../m4-*/lib/stdio-impl.h
 
-    for pkg in {diffutils,file,findutils,gawk,grep,gzip,m4,patch,sed,tar,texinfo,xz}; do
+    for pkg in {bison,diffutils,file,findutils,gawk,grep,gzip,m4,patch,sed,tar,texinfo,xz}; do
         _logger_info "Compiling $pkg"
 
-        pushd ../$pkg-*.*/
+        pushd ../$pkg-*/
           ./configure --prefix=/tools
 
           make --jobs 9
@@ -466,6 +471,8 @@ function backup_temp-tools(){
     _logger_info "Backing up build temptools"
 
     cd $BROOT
+
+    sudo chown -R root: $BROOT/tools
 
     sudo tar --ignore-failed-read -cJpf $ROOT_DIR/backup-temp-tools-$BVERSION.tar.xz .
 }

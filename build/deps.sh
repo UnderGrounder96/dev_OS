@@ -29,11 +29,10 @@ function check_yaac(){
     sudo ln -vs `which bison` /bin/yacc
 }
 
-function create_build_user(){
+function create_temp-build_user(){
     _logger_info "Handling build user creation"
 
-    sudo useradd --create-home --skel /dev/null $BUSER
-    sudo usermod $BUSER -aG wheel
+    sudo useradd --create-home --skel /dev/null --gid wheel $BUSER
 
     echo "$BUSER    ALL=(ALL) NOPASSWD:    ALL" | sudo tee -a /etc/sudoers
 
@@ -50,10 +49,10 @@ function create_build_user(){
 EOF
 }
 
-function create_build_dirs(){
+function create_temp-build_dirs(){
     _logger_info "Creating build directories"
 
-    sudo mkdir -vp $BROOT/{boot,source/build,logs,tools}
+    sudo mkdir -vp $BROOT/{boot,source/build,tools}
     sudo ln -vs $BROOT/tools / # '/tools' -> '$BROOT/tools'
     sudo chmod -vR 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
     sudo chown -vh $BUSER /tools # first we change the ownership of the symbolic link
@@ -87,8 +86,7 @@ function mount_build_disk(){
     sudo mkswap --label DESTSWAP /dev/sdb4
     sudo swapon LABEL=DESTSWAP
 
-
-    create_build_dirs # fisrt mount $BROOT, then create folders
+    create_temp-build_dirs # first mount $BROOT, then create folders
 
     sudo mount -t xfs --label DESTBOOT $BROOT/boot
 
@@ -121,7 +119,7 @@ function main(){
 
     check_yaac
 
-    create_build_user
+    create_temp-build_user
 
     mount_build_disk
 

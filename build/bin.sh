@@ -7,7 +7,7 @@
 set -euo pipefail
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
-LOG_FILE="$ROOT_DIR/logs/build-$(date '+%F_%T').log"
+LOG_FILE="$ROOT_DIR/logs/bin-$(date '+%F_%T').log"
 
 export ROOT_DIR
 
