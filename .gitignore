@@ -1,5 +1,6 @@
 # folders
 .vagrant/
+backup/
 bin/
 logs/
 
