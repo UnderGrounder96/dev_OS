@@ -35,6 +35,10 @@ function setup_build(){
     sudo -u $BUSER env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/setup.sh $ROOT_DIR/configs/common.sh
 }
 
+function build_OS(){
+    sudo env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/build.sh $ROOT_DIR/configs/common.sh
+}
+
 function main(){
     prepare_tmp_dir
 
@@ -42,7 +46,10 @@ function main(){
 
     setup_build
 
+    build_OS
+
     clean_tmp_dir
+
     exit 0
 }
 

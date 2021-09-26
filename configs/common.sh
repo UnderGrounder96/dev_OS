@@ -4,8 +4,6 @@
 # description     Helper file
 # ==============================================================================
 
-set -euo pipefail
-
 # build variables
 BUSER="byol"
 BROOT="/build"
