@@ -40,12 +40,26 @@ function mount_build_dirs(){
     fi
 }
 
+function entering_chroot_jail(){
+    _logger_info "Entering chroot jail"
+
+    cp -ruv $ROOT_DIR/{libs,configs} $BROOT
+
+    chroot "$BROOT" /tools/bin/env -i                 \
+      TERM="$TERM"  PS1="\u:\w\$ "  HOME="/root"      \
+      PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
+      /tools/bin/bash --login +h                      \
+      -c "sh /libs/base.sh /configs/common.sh"
+}
+
 function main(){
     create_build_dirs
 
     create_device_nodes
 
     mount_build_dirs
+
+    entering_chroot_jail
 
     exit 0
 }
