@@ -38,10 +38,64 @@ function creating_os_dirs() {
     esac
 }
 
+function create_essential_files(){
+    _logger_info "Creating OS dirs"
+
+    ln -sv /tools/bin/perl /usr/bin
+    ln -sv /tools/bin/{bash,cat,echo,pwd,stty} /bin
+    ln -sv /tools/lib/libgcc_s.so{,.1} /usr/lib
+    ln -sv /tools/lib/libstdc++.so{,.6} /usr/lib
+    ln -sv bash /bin/sh
+
+    ln -sv /proc/self/mounts /etc/mtab
+
+    touch /var/log/{btmp,lastlog,faillog,wtmp}
+
+    chmod -v 600  /var/log/btmp
+    chmod -v 664  /var/log/lastlog
+    chgrp -v utmp /var/log/lastlog
+
+    tee /etc/passwd <<EOF
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/dev/null:/bin/false
+daemon:x:6:6:Daemon User:/dev/null:/bin/false
+messagebus:x:18:18:D-Bus Message Daemon User:/var/run/dbus:/bin/false
+nobody:x:99:99:Unprivileged User:/dev/null:/bin/false
+EOF
+
+    tee /etc/group <<EOF
+root:x:0:
+bin:x:1:daemon
+sys:x:2:
+kmem:x:3:
+tape:x:4:
+tty:x:5:
+daemon:x:6:
+floppy:x:7:
+disk:x:8:
+lp:x:9:
+dialout:x:10:
+audio:x:11:
+video:x:12:
+utmp:x:13:
+usb:x:14:
+cdrom:x:15:
+adm:x:16:
+messagebus:x:18:
+systemd-journal:x:23:
+input:x:24:
+mail:x:34:
+nogroup:x:99:
+users:x:999:
+EOF
+}
+
 function main(){
     _logger_info "Executing lib/base.sh"
 
     creating_os_dirs
+
+    create_essential_files
 
     exit 0
 }
