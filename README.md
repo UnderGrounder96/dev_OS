@@ -35,10 +35,10 @@ sudo mkdir -vp /dev_OS_build/source
 # create and run a pipeline
 ```
 
-## Author
+## Authors
 
-Lucio Afonso (Developer),
-Aleksandra Afonso (Designer)
+- Lucio Afonso (Developer)
+- Aleksandra Afonso (Designer)
 
 ## License
 
