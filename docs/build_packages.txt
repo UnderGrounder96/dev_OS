@@ -14,3 +14,71 @@ wget https://linuxfromscratch.org/lfs/downloads/wget-list --output-document=$ROO
 wget --no-check-certificate --timestamping --progress=bar:force \
   --show-progress --rejected-log=$ROOT_DIR/wget_rejected_list.log \
   --input-file=$ROOT_DIR/configs/packages_list.txt --directory-prefix=$ROOT_DIR/bin
+
+=== === === === === === === === === === === === === === === === === === === === === === === ===
+## Explanation from https://github.com/reinterpretcat/lfs
+
+Binutils - contains a linker, an assembler, and other tools for handling object files
+
+GCC - contains the GNU compiler collection, which includes the C and C++ compilers
+
+Linux - (API Headers) expose the kernel's API for use by Glibc
+
+Glibc - (GNU LibC) contains the main C library. This library provides the basic routines for allocating memory,
+searching directories, opening and closing files, reading and writing files, string handling, pattern
+matching, arithmetic, and more
+
+Libstdc++ is the standard C++ library. It is needed for the correct operation of the g++ compile
+
+TCL - contains the Tool Command Language.
+
+Expect - contains a program for carrying out scripted dialogues with other interactive programs
+
+DejaGNU - contains a framework for testing other programs
+
+M4 - contains a macro processor
+
+Ncurses - contains libraries for terminal-independent handling of character screens
+
+Bash - contains the Bourne-Again SHell
+
+Bzip2 - contains programs for compressing and decompressing files. Compressing text
+files with bzip2 yields a much better compression percentage than with the traditional gzip
+
+Coreutils - contains utilities for showing and setting the basic system characteristics
+
+Diffutils - contains programs that show the differences between files or directories
+
+File - contains a utility for determining the type of a given file or files
+
+Findutils - contains programs to find files. These programs are provided to recursively
+search through a directory tree and to create, maintain, and search a database (often faster
+than the recursive find, but unreliable if the database has not been recently updated)
+
+Gawk - contains programs for manipulating text files
+
+Gettext - contains utilities for internationalization and localization. These allow programs to be
+compiled with NLS (Native Language Support), enabling them to output messages in the user's native language
+
+Grep - contains programs for searching through files
+
+Gzip - contains programs for compressing and decompressing files
+
+Make - contains a program for compiling packages
+
+Patch - contains a program for modifying or creating files by applying a "patch" file
+typically created by the diff program
+
+Perl - contains the Practical Extraction and Report Language
+
+Sed - contains a stream editor
+
+Tar - contains an archiving program
+
+Texinfo - contains programs for reading, writing, and converting info pages
+
+Util-linux - contains miscellaneous utility programs
+
+Xz - contains programs for compressing and decompressing files. It provides capabilities for the
+lzma and the newer xz compression formats. Compressing text files with xz yields a better compression
+percentage than with the traditional gzip or bzip2 commands
