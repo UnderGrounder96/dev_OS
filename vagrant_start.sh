@@ -29,7 +29,7 @@ function main(){
     vagrant up
 
     _logger_info "Running build.sh"
-    vagrant ssh -c "bash /vagrant/build/bin.sh" || {
+    vagrant ssh -c "sudo bash /vagrant/build/bin.sh" || {
         EXIT_BUILD_STATUS=$?
         _logger_info "ERROR: Build failed, please analyze the logs"
     }
