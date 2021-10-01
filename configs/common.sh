@@ -10,7 +10,7 @@ BROOT="/build"
 BTARGET="x86_64-BROOT-linux-gnu"
 BVERSION="1.0.0"
 
-# functions
+# helper function
 function _logger_info(){
     echo -e "\n[$(date '+%d/%b/%Y %T')]: $*...\n"
 }
