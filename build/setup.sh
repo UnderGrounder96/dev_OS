@@ -4,6 +4,9 @@
 # description     This script sets up OS build
 # ==============================================================================
 
+# exits in case there is a temp-tools backup
+[ -f "$BROOT/backup/VERSION" ] && exit 0
+
 set -euo pipefail
 
 COMMON="${1}"
@@ -24,23 +27,12 @@ function clean_cwd(){
     cd $cwd
 }
 
-function unload_build_packages(){
-    [ -f "$BROOT/backup/VERSION" ] && exit 0 # checks if there is a temp-tools backup
-
-    _logger_info "Unloading build packages"
-
-    pushd $BROOT/source
-      cp -fv $ROOT_DIR/bin/* . # offline packages unloading
-      find -name "*.tar*" -exec tar -xf {} \; -delete
-    popd
-}
-
 # --------------------------- STAGE 1 ------------------------------------------
 
 function compile_binutils_1(){
     _logger_info "Compiling binutils part 1"
 
-    ../binutils-*/configure \
+    ../binutils-*/configure      \
       --prefix=/tools            \
       --with-sysroot=$BROOT      \
       --with-lib-path=/tools/lib \
@@ -50,7 +42,11 @@ function compile_binutils_1(){
 
     make --jobs 9
 
-    mkdir -v /tools/lib && ln -sfv lib /tools/lib64
+    case $(uname -m) in
+      x86_64)
+        ln -sfv lib /tools/lib64
+      ;;
+    esac
 
     make --jobs 9 install
 }
@@ -64,15 +60,21 @@ function compile_gcc_1(){
       mv -v ../mpc-*/ mpc/
 
       for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do
-          cp -uv $file{,.orig}
-          sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig > $file
-          echo '
+        cp -fuv $file{,.orig}
+        sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig > $file
+        echo '
 #undef STANDARD_STARTFILE_PREFIX_1
 #undef STANDARD_STARTFILE_PREFIX_2
 #define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
 #define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
-          touch $file.orig
+        touch $file.orig
       done
+
+      case $(uname -m) in
+        x86_64)
+          sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
+        ;;
+      esac
     popd
 
     ../gcc-10.2.0/configure                          \
@@ -109,7 +111,7 @@ function install_kernel_headers(){
     pushd $BROOT/source/linux-*
       make --jobs 9 mrproper
       make --jobs 9 INSTALL_HDR_PATH=dest headers_install
-      cp -rfv dest/include /tools
+      cp -rfuv dest/include /tools
     popd
 }
 
@@ -151,7 +153,7 @@ function test_toolchain(){
     rm -vf dummy.c a.out
 }
 
-function compile_glibcpp(){
+function compile_libcpp(){
     _logger_info "Compiling GNU C++ Library"
 
     ../gcc-10.2.0/libstdc++-v3/configure         \
@@ -191,14 +193,15 @@ function compile_binutils_2(){
     make --directory ld clean
     make --directory ld LIB_PATH=/usr/lib:/lib
 
-    cp -fv ld/ld-new /tools/bin
+    cp -fuv ld/ld-new /tools/bin
 }
 
 function compile_gcc_2(){
     _logger_info "Compiling gcc part 2"
 
     pushd $BROOT/source/gcc-10.2.0
-      cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $($BTARGET-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+      cat gcc/limitx.h gcc/glimits.h gcc/limity.h >  \
+        `dirname $($BTARGET-gcc -print-libgcc-file-name)`/include-fixed/limits.h
     popd
 
     export CC=$BTARGET-gcc
@@ -249,7 +252,7 @@ function compile_expect(){
     _logger_info "Compiling expect"
 
     pushd ../expect*/
-      cp -fv configure{,.orig}
+      cp -fuv configure{,.orig}
 
       sed 's:/usr/local/bin:/bin:' configure.orig > configure
 
@@ -324,16 +327,16 @@ function compile_bzip2(){
     _logger_info "Compiling bzip2"
 
     pushd ../bzip2-*/
-      make -f Makefile-libbz2_so
+      make --jobs 9 --file Makefile-libbz2_so
 
-      make clean
+      make --jobs 9 clean
 
       make --jobs 9
 
       make --jobs 9 PREFIX=/tools install
 
-      cp -fv bzip2-shared /tools/bin/bzip2
-      cp -afv libbz2.so* /tools/lib
+      cp -fuv bzip2-shared /tools/bin/bzip2
+      cp -afuv libbz2.so* /tools/lib
 
       ln -sfv libbz2.so.1.0 /tools/lib/libbz2.so
     popd
@@ -359,7 +362,7 @@ function compile_gettext(){
 
       make --jobs 9
 
-      cp -fv gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
+      cp -fuv gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
     popd
 }
 
@@ -367,6 +370,9 @@ function compile_make(){
     _logger_info "Compiling make"
 
     pushd ../make-*/
+      # workaround an error caused by glibc-2.27:
+      # sed -i '211,217 d; 219,229 d; 232 d' glob/glob.c
+
     	./configure --prefix=/tools --without-guile
 
       make --jobs 9
@@ -383,11 +389,11 @@ function compile_perl(){
 
       make --jobs 9
 
-      cp -fv perl cpan/podlators/scripts/pod2man /tools/bin
+      cp -fuv perl cpan/podlators/scripts/pod2man /tools/bin
 
       mkdir -vp /tools/lib/perl5/5.32.1
 
-      cp -rfv lib/* /tools/lib/perl5/5.32.1
+      cp -rfuv lib/* /tools/lib/perl5/5.32.1
     popd
 }
 
@@ -442,15 +448,15 @@ function compile_basic_packages(){
 	  echo "#define _IO_IN_BACKUP 0x100" >> ../m4-*/lib/stdio-impl.h
 
     for pkg in {bison,diffutils,file,findutils,gawk,grep,gzip,m4,patch,sed,tar,texinfo,xz}; do
-        _logger_info "Compiling $pkg"
+      _logger_info "Compiling $pkg"
 
-        pushd ../$pkg-*/
-          ./configure --prefix=/tools
+      pushd ../$pkg-*/
+        ./configure --prefix=/tools
 
-          make --jobs 9
+        make --jobs 9
 
-          make --jobs 9 install
-        popd
+        make --jobs 9 install
+      popd
     done
 }
 
@@ -474,12 +480,10 @@ function backup_temp-tools(){
 
     sudo chown -R root: $BROOT/tools
 
-    sudo tar --ignore-failed-read -cJpf $ROOT_DIR/backup-temp-tools-$BVERSION.tar.xz .
+    sudo tar --ignore-failed-read --exclude="source" -cJpf $ROOT_DIR/backup-temp-tools-$BVERSION.tar.xz .
 }
 
 function main(){
-    unload_build_packages
-
 # ------- STAGE 1 -------
 
     compile_binutils_1
@@ -495,7 +499,7 @@ function main(){
 
     test_toolchain
 
-    compile_glibcpp
+    compile_libcpp
     clean_cwd
 
 # ------- STAGE 2 -------
@@ -534,4 +538,4 @@ function main(){
     exit 0
 }
 
-main 2>&1 | sudo -u vagrant tee -a $LOG_FILE
+main 2>&1 | sudo tee -a $LOG_FILE
