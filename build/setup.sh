@@ -4,9 +4,6 @@
 # description     This script sets up OS build
 # ==============================================================================
 
-# exits in case there is a temp-tools backup
-[ -f "$BROOT/backup/VERSION" ] && exit 0
-
 set -euo pipefail
 
 COMMON="${1}"
@@ -15,6 +12,9 @@ source $COMMON
 source ~/.bashrc
 
 LOG_FILE="$ROOT_DIR/logs/setup-$(date '+%F_%T').log"
+
+# exits in case there is a temp-tools backup
+[ -f "$BROOT/backup/VERSION" ] && exit 0
 
 function clean_cwd(){
     _logger_info "Removing everything from $PWD"
