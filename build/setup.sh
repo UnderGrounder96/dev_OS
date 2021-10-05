@@ -110,17 +110,19 @@ function install_kernel_headers(){
 
     pushd $BROOT/source/linux-*
       make --jobs 9 mrproper
-      make --jobs 9 INSTALL_HDR_PATH=dest headers_install
-      cp -rfuv dest/include /tools
+
+      make --jobs 9 headers
+
+      sudo find usr/include -name '.*' -delete
+
+      sudo rm -f usr/include/Makefile
+
+      cp -rfuv usr/include /tools
     popd
 }
 
 function compile_glibc(){
     _logger_info "Compiling GNU C Library"
-
-    pushd $BROOT/source/glibc-*
-      patch -Np1 -i ../glibc-*-fhs-1.patch
-    popd
 
     export libc_cv_forced_unwind=yes
     export libc_cv_c_cleanup=yes
@@ -426,28 +428,26 @@ function compile_util-linux(){
     popd
 }
 
-function compile_openssl(){
-    _logger_info "Compiling openssl"
+function compile_m4(){
+    _logger_info "Compiling m4"
 
-    pushd ../openssl-*/
-      ./config --prefix=/tools             \
-        --openssldir=/tools/etc/ssl        \
-        --libdir=lib                       \
-        shared                             \
-        no-ssl3-method
+    pushd ../m4-*/
+      # fixes required by glibc-2.28
+      sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' lib/*.c
+      echo "#define _IO_IN_BACKUP 0x100" >> lib/stdio-impl.h
+
+      ./configure --prefix=/tools             \
+        --host=$BTARGET                       \
+        --build=$(../m4-*/build-aux/config.guess)
 
       make --jobs 9
 
-      make --jobs 9 MANDIR=/tools/share/man MANSUFFIX=ssl install
+      make --jobs 9 DESTDIR=$BROOT install
     popd
 }
 
 function compile_basic_packages(){
-  	# fixes required by glibc-2.28
-	  sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' ../m4-*/lib/*.c
-	  echo "#define _IO_IN_BACKUP 0x100" >> ../m4-*/lib/stdio-impl.h
-
-    for pkg in {bison,diffutils,file,findutils,gawk,grep,gzip,m4,patch,sed,tar,texinfo,xz}; do
+    for pkg in {bison,diffutils,file,findutils,gawk,grep,gzip,patch,sed,tar,texinfo,xz}; do
       _logger_info "Compiling $pkg"
 
       pushd ../$pkg-*/
@@ -514,20 +514,20 @@ function main(){
 
 # ---- PACKAGES/UTILS ----
 
-    compile_tcl
-    compile_expect
-    compile_dejagnu
-    compile_check
+    # compile_tcl
+    # compile_expect
+    # compile_dejagnu
+    # compile_check
     compile_ncurses
     compile_bash
-    compile_bzip2
+    # compile_bzip2
     compile_coreutils
     compile_gettext
     compile_make
     compile_perl
     compile_python
     compile_util-linux
-    compile_openssl
+    compile_m4
     compile_basic_packages
 
 # --- CLEANING/BACKUP ---
