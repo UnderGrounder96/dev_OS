@@ -65,31 +65,29 @@ function create_temp-build_dirs(){
 function mount_build_disk(){
     _logger_info "Handling build_disk"
 
+    lsblk -l # debug
+
     install -dv -m 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
 
-    # Labeling build_disk
-    parted --script /dev/sdb mklabel gpt
+    parted --script /dev/sdb mklabel gpt # Labeling build_disk
 
-    # EFI/GRUB partition
     parted --script /dev/sdb mkpart primary 0% 120MB
     parted --script /dev/sdb set 1 bios_grub on # enables bios_grub flag in part1
-    mkfs.fat /dev/sdb1
-
-    # '/boot' partition
     parted --script /dev/sdb mkpart primary 120MB 666MB
-    mkfs.xfs -L DESTBOOT /dev/sdb2
-
-    # '/' root file system partition
     parted --script /dev/sdb mkpart primary 666MB 28GB
-    mkfs.xfs -L DESTROOT /dev/sdb3
-    mount -t xfs --label DESTROOT $BROOT
-
-    # swap partition
     parted --script /dev/sdb mkpart primary 28GB  100%
-    mkswap --label DESTSWAP /dev/sdb4
+
+    mkfs.fat /dev/sdb1 # EFI/GRUB partition
+    mkfs.xfs -L DESTBOOT /dev/sdb2  # '/boot' partition
+    mkfs.xfs -L DESTROOT /dev/sdb3 # '/' root file system partition
+
+    mkswap --label DESTSWAP /dev/sdb4 # swap partition
     swapon LABEL=DESTSWAP
 
-    create_temp-build_dirs # first mount $BROOT, then create folders
+    # first mount $BROOT, then create folders
+    mount -t xfs --label DESTROOT $BROOT
+
+    create_temp-build_dirs
 
     mount -t xfs --label DESTBOOT $BROOT/boot
 
@@ -111,6 +109,10 @@ function unload_build_packages(){
     pushd $BROOT/source
       sudo -u $BUSER cp -fuv $ROOT_DIR/bin/* . # offline packages unloading
       sudo -u $BUSER find -name "*.tar*" -exec tar -xf {} \; -delete
+
+      pushd glibc-*/
+        patch -Np1 -i ../glibc-*-fhs-1.patch
+      popd
     popd
 }
 
