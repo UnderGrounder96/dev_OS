@@ -263,6 +263,34 @@ function test_toolchain(){
     rm -fv dummy.* a.out
 }
 
+# ------------------------------- BUILD PKGS -----------------------------------
+
+function install_bzip2(){
+    _logger_info "Installing Bzip2"
+
+    pushd ../bzip2-*/
+      patch -Np1 -i ../bzip2-*-install_docs-1.patch
+
+      sed -i 's@\(ln -s -f \)$(PREFIX)/bin/@\1@' Makefile
+      sed -i "s@(PREFIX)/man@(PREFIX)/share/man@g" Makefile
+
+      make --jobs 9 --file Makefile-libbz2_so
+      make --jobs 9 clean
+
+      make --jobs 9
+      make --jobs 9 PREFIX=/usr install
+
+      cp -fuv bzip2-shared /bin/bzip2
+      cp -afuv libbz2.so* /lib
+
+      rm -fv /usr/bin/{bunzip2,bzcat,bzip2}
+
+      ln -sfv ../../lib/libbz2.so.1.0 /usr/lib/libbz2.so
+      ln -sfv bzip2 /bin/bunzip2
+      ln -sfv bzip2 /bin/bzcat
+    popd
+}
+
 function main(){
     _logger_info "Executing lib/base.sh"
 
@@ -278,6 +306,10 @@ function main(){
     adjust_toolchain
 
     test_toolchain
+
+    # ------- BUILD PKGS -------
+
+    install_bzip2
 
     exit 0
 }
