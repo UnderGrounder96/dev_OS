@@ -265,6 +265,21 @@ function test_toolchain(){
 
 # ------------------------------- BUILD PKGS -----------------------------------
 
+function install_zlib(){
+    _logger_info "Installing zlib"
+
+    pushd ../zlib-*/
+      ./configure --prefix=/usr
+
+      make --jobs 9
+      make --jobs 9 check
+      make --jobs 9 install
+
+      mv -v /usr/lib/libz.so.* /lib
+      ln -sfv ../../lib/$(readlink /usr/lib/libz.so) /usr/lib/libz.so
+    popd
+}
+
 function install_bzip2(){
     _logger_info "Installing Bzip2"
 
@@ -325,6 +340,7 @@ function main(){
 
     # ------- BUILD PKGS -------
 
+    install_zlib
     install_bzip2
     install_pkg_config
 
