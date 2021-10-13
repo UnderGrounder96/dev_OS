@@ -135,7 +135,7 @@ function install_glibc(){
 
     make --jobs 9
 
-    make --jobs 9 check || true
+    # make --jobs 9 check || true
 
     touch /etc/ld.so.conf
 
@@ -272,7 +272,7 @@ function install_zlib(){
       ./configure --prefix=/usr
 
       make --jobs 9
-      make --jobs 9 check
+      # make --jobs 9 check
       make --jobs 9 install
 
       mv -v /usr/lib/libz.so.* /lib
@@ -287,7 +287,7 @@ function install_file(){
       ./configure --prefix=/usr
 
       make --jobs 9
-      make --jobs 9 check
+      # make --jobs 9 check
       make --jobs 9 install
     popd
 }
@@ -299,9 +299,10 @@ function install_readline(){
       sed -i '/MV.*old/d' Makefile.in
       sed -i '/{OLDSUFF}/c:' support/shlib-install
 
-      ./configure --prefix=/usr \
-          --disable-static      \
-          --docdir=/usr/share/doc/readline-7.0
+      ./configure --prefix=/usr     \
+          --disable-static          \
+          --with-curses             \
+          --docdir=/usr/share/doc/readline-*
 
       make --jobs 9 SHLIB_LIBS="-L/tools/lib -lncursesw"
       make --jobs 9 SHLIB_LIBS="-L/tools/lib -lncurses" install
@@ -330,11 +331,83 @@ function install_bzip2(){
       cp -fuv bzip2-shared /bin/bzip2
       cp -afuv libbz2.so* /lib
 
-      rm -fv /usr/bin/{bunzip2,bzcat,bzip2}
+      rm -fv /usr/{bin/{bunzip2,bzcat,bzip2},lib/libbz2.a}
 
       ln -sfv ../../lib/libbz2.so.1.0 /usr/lib/libbz2.so
       ln -sfv bzip2 /bin/bunzip2
       ln -sfv bzip2 /bin/bzcat
+    popd
+}
+
+function install_xz(){
+    _logger_info "Installing xz"
+
+    pushd ../xz-*/
+      ./configure --prefix=/usr       \
+        --disable-static              \
+        --docdir=/usr/share/doc/xz-*
+
+      make --jobs 9
+      # make --jobs 9 check
+      make --jobs 9 install
+
+      mv -v   /usr/bin/{lzma,unlzma,lzcat,xz,unxz,xzcat} /bin
+      mv -v /usr/lib/liblzma.so.* /lib
+      ln -svf ../../lib/$(readlink /usr/lib/liblzma.so) /usr/lib/liblzma.so
+    popd
+}
+
+function install_zstd(){
+    _logger_info "Installing zstd"
+
+    pushd ../zstd-*/
+      make --jobs 9
+      # make --jobs 9 check
+      make --jobs 9 prefix=/usr install
+
+      rm -v /usr/lib/libzstd.a
+      mv -v /usr/lib/libzstd.so.* /lib
+      ln -sfv ../../lib/$(readlink /usr/lib/libzstd.so) /usr/lib/libzstd.so
+    popd
+}
+
+function install_m4(){
+    _logger_info "Installing m4"
+
+    pushd ../m4-*/
+      ./configure --prefix=/usr
+
+      make --jobs 9
+      # make --jobs 9 check
+      make --jobs 9 install
+    popd
+}
+
+function install_bc(){
+    _logger_info "Installing bc"
+
+    pushd ../bc-*/
+      PREFIX=/usr CC=gcc ./configure.sh -G -O3
+
+      make --jobs 9
+      # make --jobs 9 test
+      make --jobs 9 install
+    popd
+}
+
+function install_flex(){
+    _logger_info "Installing flex"
+
+    pushd ../flex-*/
+      ./configure --prefix=/usr \
+        --docdir=/usr/share/doc/flex-* \
+        --disable-static
+
+      make --jobs 9
+      # make --jobs 9 check
+      make --jobs 9 install
+
+      ln -sv flex /usr/bin/lex
     popd
 }
 
@@ -349,7 +422,7 @@ function install_pkg_config(){
         --docdir=/usr/share/doc/pkg-config-*
 
       make --jobs 9
-      make --jobs 9 check
+      # make --jobs 9 check
       make --jobs 9 install
     popd
 }
@@ -376,6 +449,11 @@ function main(){
     install_file
     install_readline
     install_bzip2
+    install_xz
+    install_zstd
+    install_m4
+    install_bc
+    install_flex
     install_pkg_config
 
     exit 0

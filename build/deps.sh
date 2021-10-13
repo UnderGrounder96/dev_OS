@@ -113,6 +113,12 @@ function unload_build_packages(){
       pushd glibc-*/
         patch -Np1 -i ../glibc-*-fhs-1.patch
       popd
+
+      pushd m4-*/
+        # fixes required by glibc-2.28
+        sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' lib/*.c
+        echo "#define _IO_IN_BACKUP 0x100" >> lib/stdio-impl.h
+      popd
     popd
 }
 
