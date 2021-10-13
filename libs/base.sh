@@ -280,6 +280,18 @@ function install_zlib(){
     popd
 }
 
+function install_file(){
+    _logger_info "Installing file"
+
+    pushd ../file-*/
+      ./configure --prefix=/usr
+
+      make --jobs 9
+      make --jobs 9 check
+      make --jobs 9 install
+    popd
+}
+
 function install_bzip2(){
     _logger_info "Installing Bzip2"
 
@@ -341,6 +353,7 @@ function main(){
     # ------- BUILD PKGS -------
 
     install_zlib
+    install_file
     install_bzip2
     install_pkg_config
 
