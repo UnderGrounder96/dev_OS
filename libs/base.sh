@@ -292,6 +292,26 @@ function install_file(){
     popd
 }
 
+function install_readline(){
+    _logger_info "Installing readline"
+
+    pushd ../readline-*/
+      sed -i '/MV.*old/d' Makefile.in
+      sed -i '/{OLDSUFF}/c:' support/shlib-install
+
+      ./configure --prefix=/usr \
+          --disable-static      \
+          --docdir=/usr/share/doc/readline-7.0
+
+      make --jobs 9 SHLIB_LIBS="-L/tools/lib -lncursesw"
+      make --jobs 9 SHLIB_LIBS="-L/tools/lib -lncurses" install
+
+      mv -v /usr/lib/lib{readline,history}.so.* /lib
+      ln -sfv ../../lib/$(readlink /usr/lib/libreadline.so) /usr/lib/libreadline.so
+      ln -sfv ../../lib/$(readlink /usr/lib/libhistory.so ) /usr/lib/libhistory.so
+    popd
+}
+
 function install_bzip2(){
     _logger_info "Installing Bzip2"
 
@@ -354,6 +374,7 @@ function main(){
 
     install_zlib
     install_file
+    install_readline
     install_bzip2
     install_pkg_config
 
