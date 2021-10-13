@@ -291,6 +291,22 @@ function install_bzip2(){
     popd
 }
 
+function install_pkg_config(){
+    _logger_info "Install pkg-config"
+
+    pushd ../pkg-config-*/
+      ./configure --prefix=/usr                   \
+        --with-internal-glib                      \
+        --disable-host-tool                       \
+        --disable-compile-warnings                \
+        --docdir=/usr/share/doc/pkg-config-*
+
+      make --jobs 9
+      make --jobs 9 check
+      make --jobs 9 install
+    popd
+}
+
 function main(){
     _logger_info "Executing lib/base.sh"
 
@@ -310,6 +326,7 @@ function main(){
     # ------- BUILD PKGS -------
 
     install_bzip2
+    install_pkg_config
 
     exit 0
 }
