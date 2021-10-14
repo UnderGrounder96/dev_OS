@@ -116,6 +116,14 @@ function install_man_pages(){
     popd
 }
 
+function install_iana_etc(){
+    _logger_info "Installing Iana-etc"
+
+    pushd ../iana-etc-*/
+      cp services protocols /etc
+    popd
+}
+
 function install_glibc(){
     _logger_info "Installing GlibC"
 
@@ -411,6 +419,111 @@ function install_flex(){
     popd
 }
 
+function install_tcl(){
+    _logger_info "Installing tcl"
+
+    pushd ../tcl*/
+      SRCDIR=$(pwd)
+      cd unix
+      ./configure --prefix=/usr           \
+        --mandir=/usr/share/man           \
+        $([ "$(uname -m)" = x86_64 ] && echo --enable-64bit)
+
+      make --jobs 9
+
+      sed -e "s|$SRCDIR/unix|/usr/lib|" \
+        -e "s|$SRCDIR|/usr/include|"  \
+        -i tclConfig.sh
+
+      sed -e "s|$SRCDIR/unix/pkgs/tdbc1.1.2|/usr/lib/tdbc1.1.2|" \
+        -e "s|$SRCDIR/pkgs/tdbc1.1.2/generic|/usr/include|"    \
+        -e "s|$SRCDIR/pkgs/tdbc1.1.2/library|/usr/lib/tcl8.6|" \
+        -e "s|$SRCDIR/pkgs/tdbc1.1.2|/usr/include|"            \
+        -i pkgs/tdbc1.1.2/tdbcConfig.sh
+
+      sed -e "s|$SRCDIR/unix/pkgs/itcl4.2.1|/usr/lib/itcl4.2.1|" \
+        -e "s|$SRCDIR/pkgs/itcl4.2.1/generic|/usr/include|"    \
+        -e "s|$SRCDIR/pkgs/itcl4.2.1|/usr/include|"            \
+        -i pkgs/itcl4.2.1/itclConfig.sh
+
+      unset SRCDIR
+
+      # make --jobs test || true
+      make --jobs 9 install
+
+      chmod -v u+w /usr/lib/libtcl8.6.so
+
+      make --jobs 9 install-private-headers
+
+      ln -sfv tclsh8.6 /usr/bin/tclsh
+      mv /usr/share/man/man3/{Thread,Tcl_Thread}.3
+    popd
+}
+
+function install_expect(){
+    _logger_info "Install expect"
+
+    pushd ../expect*/
+      ./configure --prefix=/usr         \
+        --with-tcl=/usr/lib             \
+        --enable-shared                 \
+        --mandir=/usr/share/man         \
+        --with-tclinclude=/usr/include
+
+      make --jobs 9
+      make --jobs 9 test
+      make --jobs 9 install
+
+      ln -svf expect5.45.4/libexpect5.45.4.so /usr/lib
+    popd
+}
+
+function install_dejangu() {
+    _logger_info "Install DejaGNU"
+
+    pushd ../dejagnu-*/
+      ./configure --prefix=/usr
+
+      makeinfo --html --no-split -o doc/dejagnu.html doc/dejagnu.texi
+      makeinfo --plaintext       -o doc/dejagnu.txt  doc/dejagnu.texi
+
+      make --jobs 9 install
+
+      install -v -dm755  /usr/share/doc/dejagnu-1.6.2
+      install -v -m644   doc/dejagnu.{html,txt} /usr/share/doc/dejagnu-1.6.2
+
+      make --jobs 9 check
+    popd
+}
+
+function install_binutils(){
+    _logger_info "Installing binutils"
+
+    pushd ../binutils-*/
+      # check to ensure ptys work in the jail
+      expect -c "spawn ls"
+
+      sed -i '/@\tincremental_copy/d' gold/testsuite/Makefile.in
+      # sed -i '63d' etc/texi2pod.pl
+      # find -name \*.1 -delete
+
+      ./configure --prefix=/usr     \
+        --enable-gold               \
+        --enable-ld=default         \
+        --enable-plugins            \
+        --enable-shared             \
+        --disable-werror            \
+        --enable-64-bit-bfd         \
+        --with-system-zlib
+
+      make --jobs 9 tooldir=/usr
+      # make --jobs 9 --keep-going check || true
+      make --jobs 4 tooldir=/usr install
+
+      rm -fv /usr/lib/lib{bfd,ctf,ctf-nobfd,opcodes}.a
+    popd
+}
+
 function install_pkg_config(){
     _logger_info "Install pkg-config"
 
@@ -436,6 +549,7 @@ function main(){
     create_essential_files
 
     install_man_pages
+    install_iana_etc
 
     install_glibc
 
@@ -454,6 +568,10 @@ function main(){
     install_m4
     install_bc
     install_flex
+    install_tcl
+    install_expect
+    install_dejangu
+    install_binutils
     install_pkg_config
 
     exit 0
