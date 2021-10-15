@@ -489,8 +489,8 @@ function install_dejangu() {
 
       make --jobs 9 install
 
-      install -v -dm755  /usr/share/doc/dejagnu-1.6.2
-      install -v -m644   doc/dejagnu.{html,txt} /usr/share/doc/dejagnu-1.6.2
+      install -dv -m 755  /usr/share/doc/dejagnu-1.6.2
+      install -v -m 644   doc/dejagnu.{html,txt} /usr/share/doc/dejagnu-1.6.2
 
       make --jobs 9 check
     popd
@@ -671,6 +671,48 @@ function install_shadow(){
     popd
 }
 
+function install_gcc(){
+    _logger_info "Installing gcc"
+
+    pushd ../gcc-10.2.0/
+      # case $(uname -m) in
+      #   x86_64)
+      #     sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
+      #   ;;
+      # esac
+
+      LD="ld" ./configure --prefix=/usr  \
+        --enable-languages=c,c++         \
+        --disable-multilib               \
+        --disable-bootstrap              \
+        --with-system-zlib
+
+      make --jobs 9
+
+      # increase default stack test suite limit
+      # ulimit -s 32768
+
+      # make --jobs 9 --keep-going check || true
+      # ./contrib/test_summary
+
+      _logger_info "GCC - TEST3"
+      make --jobs 9 install
+      _logger_info "GCC - TEST4"
+      rm -rf /usr/lib/gcc/$(gcc -dumpmachine)/10.2.0/include-fixed/bits/
+
+      ln -sfv /usr/bin/cpp /lib
+      ln -sfv gcc /usr/bin/cc
+
+      install -dv -m 755 /usr/lib/bfd-plugins
+      ln -sfv ../../libexec/gcc/$(gcc -dumpmachine)/10.2.0/liblto_plugin.so /usr/lib/bfd-plugins/
+
+      test_toolchain
+
+      mkdir -vp /usr/share/gdb/auto-load/usr/lib
+      mv -v /usr/lib/*gdb.py /usr/share/gdb/auto-load/usr/lib
+    popd
+}
+
 function install_pkg_config(){
     _logger_info "Install pkg-config"
 
@@ -726,6 +768,8 @@ function main(){
     install_acl
     install_libcap
     install_shadow
+    install_gcc
+    clean_cwd
     install_pkg_config
 
     exit 0

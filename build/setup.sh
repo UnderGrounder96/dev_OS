@@ -103,6 +103,9 @@ function compile_gcc_1(){
     make --jobs 9
 
     make --jobs 9 install
+
+    cat ../gcc/limitx.h ../gcc/glimits.h ../gcc/limity.h > \
+      `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
 }
 
 function install_kernel_headers(){
@@ -510,13 +513,13 @@ function main(){
 
 # ---- PACKAGES/UTILS ----
 
-    # compile_tcl
-    # compile_expect
-    # compile_dejagnu
-    # compile_check
+    compile_tcl
+    compile_expect
+    compile_dejagnu
+    compile_check
     compile_ncurses
     compile_bash
-    # compile_bzip2
+    compile_bzip2
     compile_coreutils
     compile_gettext
     compile_make
