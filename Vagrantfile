@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "generic/fedora25"
+  config.vm.box = "generic/fedora33"
   config.vm.hostname = "dev-os"
 
   config.vm.disk :disk, name: "build_disk", size: "30GB"
