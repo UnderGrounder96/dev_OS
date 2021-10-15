@@ -3,7 +3,7 @@
 # author		      @undergrounder96
 # description     This script kickstarts the dev_OS development
 # ==============================================================================
-exit 1;
+
 set -euo pipefail
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
@@ -30,9 +30,9 @@ function build_OS(){
 function main(){
     deps_install
 
-    setup_build
+    # setup_build
 
-    build_OS
+    # build_OS
 
     exit 0
 }

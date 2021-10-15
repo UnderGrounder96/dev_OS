@@ -8,7 +8,7 @@ cd dev_OS/
 ROOT_DIR=$PWD
 
 # Downloads the most recent wget-list from lfs to --output-document=PATH
-wget https://linuxfromscratch.org/lfs/downloads/wget-list --output-document=$ROOT_DIR/configs/packages_list.txt
+wget https://linuxfromscratch.org/lfs/downloads/11.0-systemd/wget-list --output-document=$ROOT_DIR/configs/packages_list.txt
 
 # Gets the packages from the wget-list to --directory-prefix=PATH
 wget --no-check-certificate --timestamping --progress=bar:force \
