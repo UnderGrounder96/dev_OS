@@ -524,6 +524,153 @@ function install_binutils(){
     popd
 }
 
+function install_gmp(){
+    _logger_info "Install GMP"
+
+    pushd ../gmp-*/
+      cp -fuv {configfsf,config}.guess
+      cp -fuv {configfsf,config}.sub
+
+      ./configure --prefix=/usr    \
+        --enable-cxx               \
+        --disable-static           \
+        --docdir=/usr/share/doc/gmp-*
+
+      make --jobs 9
+      make --jobs 9 html
+
+      # make --jobs 9 check 2>&1 | tee gmp-check-log
+      # awk '/# PASS:/{total+=$3} ; END{print total}' gmp-check-log
+
+      make --jobs 9 install
+      make --jobs 9 install-html
+    popd
+}
+
+function install_mpfr(){
+    _logger_info "Installing mpfr"
+
+    pushd ../mpfr-*/
+      ./configure --prefix=/usr        \
+        --disable-static               \
+        --enable-thread-safe           \
+        --docdir=/usr/share/doc/mpfr-*
+
+      make --jobs 9
+      make --jobs 9 html
+
+      # make --jobs 9 check
+
+      make --jobs 9 install
+      make --jobs 9 install-html
+    popd
+}
+
+function install_mpc(){
+    _logger_info "Installing mpc"
+
+    pushd ../mpc-*/
+      ./configure --prefix=/usr        \
+        --disable-static               \
+        --docdir=/usr/share/doc/mpc-*
+
+      make --jobs 9
+      make --jobs 9 html
+
+      # make --jobs 9 check
+
+      make --jobs 9 install
+      make --jobs 9 install-html
+    popd
+}
+
+function install_attr(){
+    _logger_info "Installing attr"
+
+    pushd ../attr-*/
+      ./configure --prefix=/usr     \
+        --bindir=/bin               \
+        --disable-static            \
+        --sysconfdir=/etc           \
+        --docdir=/usr/share/doc/attr-*
+
+      make --jobs 9
+      # make --jobs 9 check
+      make --jobs 9 install
+
+      mv -v /usr/lib/libattr.so.* /lib
+      ln -sfv ../../lib/$(readlink /usr/lib/libattr.so) /usr/lib/libattr.so
+    popd
+}
+
+function install_acl() {
+    _logger_info "Installing acl"
+
+    pushd ../acl-*/
+      ./configure --prefix=/usr       \
+        --bindir=/bin                 \
+        --disable-static              \
+        --libexecdir=/usr/lib         \
+        --docdir=/usr/share/doc/acl-*
+
+      make --jobs 9
+      make --jobs 9 install
+
+      mv -v /usr/lib/libacl.so.* /lib
+      ln -sfv ../../lib/$(readlink /usr/lib/libacl.so) /usr/lib/libacl.so
+    popd
+}
+
+function install_libcap(){
+    _logger_info "Installing Libcap"
+
+    pushd ../libcap-*/
+      sed -i '/install -m.*STA/d' libcap/Makefile
+
+      make --jobs 9 prefix=/usr lib=lib
+      make --jobs 9 test
+      make --jobs 9 prefix=/usr lib=lib install
+
+      for libname in cap psx; do
+        mv -v /usr/lib/lib${libname}.so.* /lib
+        ln -sfv ../../lib/lib${libname}.so.2 /usr/lib/lib${libname}.so
+        chmod -v 755 /lib/lib${libname}.so.2.48
+      done
+    popd
+}
+
+function install_shadow(){
+    _logger_info "Installing shadow"
+
+    pushd ../shadow-*/
+      sed -i 's/groups$(EXEEXT) //' src/Makefile.in
+
+      find man -name Makefile.in -exec \
+        sed -e 's/groups\.1 / /' -e 's/getspnam\.3 / /' -e 's/passwd\.5 / /'  -i {} \;
+
+      sed -e 's:#ENCRYPT_METHOD DES:ENCRYPT_METHOD SHA512:' \
+        -e 's:/var/spool/mail:/var/mail:'                 \
+        -i etc/login.defs
+
+      ./configure --sysconfdir=/etc --with-group-name-max-length=32
+
+      make --jobs 9
+      make --jobs 9 install
+
+      # enable shadowed passwd
+      pwconv
+
+      # enable shadowed passwd for groups
+      grpconv
+
+      # uncomment the next line to enforce passwd change for root
+      # passwd --expire root
+
+      # disable CREATE_MAIL_SPOOL
+      sed -i 's/yes/no/' /etc/default/useradd
+    popd
+}
+
 function install_pkg_config(){
     _logger_info "Install pkg-config"
 
@@ -572,6 +719,13 @@ function main(){
     install_expect
     install_dejangu
     install_binutils
+    install_gmp
+    install_mpfr
+    install_mpc
+    install_attr
+    install_acl
+    install_libcap
+    install_shadow
     install_pkg_config
 
     exit 0
