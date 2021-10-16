@@ -19,7 +19,7 @@ LOG_FILE="$ROOT_DIR/logs/temp-tools-$(date '+%F_%T').log"
 function wipe_tool(){
     _logger_info "Removing everything from ${1}"
 
-    sudo rm -rf ${1}*/
+    rm -rf ${1}*/
     tar -xf ${1}*.tar*
 }
 
@@ -100,8 +100,8 @@ function install_kernel_headers(){
       make mrproper
       make headers
 
-      sudo find usr/include -name '.*' -delete
-      sudo rm -f usr/include/Makefile
+      find usr/include -name '.*' -delete
+      rm -f usr/include/Makefile
 
       cp -rfu usr/include $BROOT/usr
     popd
@@ -112,35 +112,52 @@ function install_kernel_headers(){
 function compile_glibc(){
     _logger_info "Compiling GNU C Library"
 
-    export libc_cv_forced_unwind=yes
-    export libc_cv_c_cleanup=yes
+    pushd glibc-*/
+      case $(uname -m) in
+        i?86)
+          ln -sfv ld-linux.so.2 $BROOT/lib/ld-lsb.so.3
+        ;;
+        x86_64)
+          ln -sfv ../lib/ld-linux-x86-64.so.2 $BROOT/lib64
+          ln -sfv ../lib/ld-linux-x86-64.so.2 $BROOT/lib64/ld-lsb-x86-64.so.3
+        ;;
+      esac
 
-    ../glibc-*/configure                            \
-      --prefix=/tools                               \
-      --host=$BTARGET                               \
-      --build=$(../glibc-*/scripts/config.guess)    \
-      --enable-kernel=3.2                           \
-      --with-headers=/tools/include
+      mkdir -v build
+      cd build
 
-    make
+      # Ensure 'ldconfig' and 'sln' utilites are installed into /usr/sbin
+      echo "rootsbindir=/usr/sbin" > configparms
 
-    make install
+      ../configure --prefix=/usr              \
+        --host=$BTARGET                       \
+        --build=$(../scripts/config.guess)    \
+        --enable-kernel=3.2                   \
+        --with-headers=$BROOT/usr/include     \
+        libc_cv_slibdir=/usr/lib
 
-    unset libc_cv_forced_unwind
-    unset libc_cv_c_cleanup
+      make
+      make DESTDIR=$BROOT install
+
+      sed '/RTLDLIST=/s@/usr@@g' -i $BROOT/usr/bin/ldd
+
+      $BROOT/tools/libexec/gcc/$BTARGET/*/install-tools/mkheaders
+    popd
+
+    wipe_tool glibc
 }
 
 function test_toolchain(){
     _logger_info "Performing Toolchain test"
 
     echo 'int main(){}' > dummy.c; $BTARGET-gcc dummy.c
-    local test_glibc=$(readelf -l a.out | grep ': /tools')
+    local test_glibc=$(readelf -l a.out | grep '/ld-linux')
 
-    echo $test_glibc | grep -w "/tools/lib64/ld-linux-x86-64.so.2"
+    echo $test_glibc | grep -w "/lib64/ld-linux-x86-64.so.2"
 
     _logger_info "Sanity check - passed"
 
-    rm -vf dummy.c a.out
+    rm -f dummy.c a.out
 }
 
 function compile_libcpp(){
@@ -480,10 +497,8 @@ function main(){
 
     install_kernel_headers
 
-#     compile_glibc
-#     clean_cwd
-
-#     test_toolchain
+    compile_glibc
+    test_toolchain
 
 #     compile_libcpp
 #     clean_cwd
