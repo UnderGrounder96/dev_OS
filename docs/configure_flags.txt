@@ -3,17 +3,15 @@
 
 --------------------------------------------------- Stage 1 --------------------------------------------------------------------
 
-../binutils-2.36.1/configure \
+../binutils-*/configure      \
   --prefix=/tools            \
   --with-sysroot=$BROOT      \
-  --with-lib-path=/tools/lib \
   --target=$BTARGET          \
   --disable-nls              \
   --disable-werror
 
 prefix :: Tells the configure script where the compiled binaries should be installed.
 with-sysroot :: Tells the configure script to look in the specified directory for the target system libraries.
-with-lib-path :: Specifies which path the linker will be configured to use.
 target :: Because the triplet we've defined is slightly different than what will be determined by configure itself, the binutils source needs to be compiled to accommodate cross-linking. This is necessary because we want to ensure a "clean room" build, without any artifacts from the build system.
 disable-els :: Disables internationalization, which we don't need at this stage.
 disable-werror :: Keeps warnings from interrupting the compile process.

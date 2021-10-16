@@ -16,39 +16,33 @@ LOG_FILE="$ROOT_DIR/logs/setup-$(date '+%F_%T').log"
 # exits in case there is a temp-tools backup
 [ -f "$BROOT/backup/VERSION" ] && exit 0
 
-function clean_cwd(){
-    _logger_info "Removing everything from $PWD"
+function wipe_tool(){
+    _logger_info "Removing everything from ${1}"
 
-    local cwd=$PWD
-
-    cd $cwd/..
-    sudo rm -rf $cwd
-    mkdir -vp $cwd
-    cd $cwd
+    sudo rm -rf ${1}*/
+    tar -xf ${1}*.tar*
 }
 
 # --------------------------- STAGE 1 ------------------------------------------
 
 function compile_binutils_1(){
-    _logger_info "Compiling binutils part 1"
+    _logger_info "Compiling binutils pass 1"
 
-    ../binutils-*/configure      \
-      --prefix=/tools            \
-      --with-sysroot=$BROOT      \
-      --with-lib-path=/tools/lib \
-      --target=$BTARGET          \
-      --disable-nls              \
-      --disable-werror
+    pushd binutils-*/
+      mkdir -v build
+      cd build
 
-    make --jobs 9
+      ../configure --prefix=/tools   \
+        --with-sysroot=$BROOT        \
+        --target=$BTARGET            \
+        --disable-nls                \
+        --disable-werror
 
-    case $(uname -m) in
-      x86_64)
-        ln -sfv lib /tools/lib64
-      ;;
-    esac
+      make
+      make install
+    popd
 
-    make --jobs 9 install
+    wipe_tool binutils
 }
 
 function compile_gcc_1(){
@@ -100,9 +94,9 @@ function compile_gcc_1(){
       --disable-libstdcxx                            \
       --enable-languages=c,c++
 
-    make --jobs 9
+    make
 
-    make --jobs 9 install
+    make install
 
     cat ../gcc/limitx.h ../gcc/glimits.h ../gcc/limity.h > \
       `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
@@ -112,9 +106,9 @@ function install_kernel_headers(){
     _logger_info "Installing Kernel Header Files"
 
     pushd $BROOT/source/linux-*
-      make --jobs 9 mrproper
+      make mrproper
 
-      make --jobs 9 headers
+      make headers
 
       sudo find usr/include -name '.*' -delete
 
@@ -137,9 +131,9 @@ function compile_glibc(){
       --enable-kernel=3.2                           \
       --with-headers=/tools/include
 
-    make --jobs 9
+    make
 
-    make --jobs 9 install
+    make install
 
     unset libc_cv_forced_unwind
     unset libc_cv_c_cleanup
@@ -170,9 +164,9 @@ function compile_libcpp(){
       --disable-libstdcxx-pch                    \
       --with-gxx-include-dir=/tools/$BTARGET/include/c++/10.2.0
 
-    make --jobs 9
+    make
 
-    make --jobs 9 install
+    make install
 }
 
 # --------------------------- STAGE 2 ------------------------------------------
@@ -191,9 +185,9 @@ function compile_binutils_2(){
       --with-lib-path=/tools/lib \
       --with-sysroot
 
-    make --jobs 9
+    make
 
-    make --jobs 9 install
+    make install
 
     make --directory ld clean
     make --directory ld LIB_PATH=/usr/lib:/lib
@@ -224,9 +218,9 @@ function compile_gcc_2(){
       --disable-bootstrap                            \
       --disable-libgomp
 
-    make --jobs 9
+    make
 
-    make --jobs 9 install
+    make install
 
     ln -sfv gcc /tools/bin/cc
 
@@ -241,13 +235,13 @@ function compile_tcl(){
     pushd ../tcl*/unix/
       ./configure --prefix=/tools
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
 
       chmod -v u+w /tools/lib/libtcl*.*.so
 
-      make --jobs 9 install-private-headers
+      make install-private-headers
 
       ln -sfv tclsh8.6 /tools/bin/tclsh
     popd
@@ -265,9 +259,9 @@ function compile_expect(){
         --with-tcl=/tools/lib           \
         --with-tclinclude=/tools/include
 
-      make --jobs 9
+      make
 
-      make --jobs 9 SCRIPTS="" install # will skip including supplemental scripts
+      make SCRIPTS="" install # will skip including supplemental scripts
     popd
 }
 
@@ -277,7 +271,7 @@ function compile_dejagnu(){
     pushd ../dejagnu-*/
       ./configure --prefix=/tools
 
-      make --jobs 9 install
+      make install
     popd
 }
 
@@ -287,9 +281,9 @@ function compile_check(){
     pushd ../check-*/
       PKG_CONFIG= ./configure --prefix=/tools # PKG_CONFIG= prevents any pre-defined pkg-config options
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
     popd
 }
 
@@ -306,9 +300,9 @@ function compile_ncurses(){
         --enable-widec            \
         --enable-overwrite
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
 
       ln -sfv libncursesw.so /tools/lib/libncurses.so
     popd
@@ -320,9 +314,9 @@ function compile_bash(){
     pushd ../bash-*/
       ./configure --prefix=/tools --without-bash-malloc
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
 
       ln -sfv bash /tools/bin/sh
     popd
@@ -332,13 +326,13 @@ function compile_bzip2(){
     _logger_info "Compiling bzip2"
 
     pushd ../bzip2-*/
-      make --jobs 9 --file Makefile-libbz2_so
+      make --file Makefile-libbz2_so
 
-      make --jobs 9 clean
+      make clean
 
-      make --jobs 9
+      make
 
-      make --jobs 9 PREFIX=/tools install
+      make PREFIX=/tools install
 
       cp -fuv bzip2-shared /tools/bin/bzip2
       cp -afuv libbz2.so* /tools/lib
@@ -353,9 +347,9 @@ function compile_coreutils(){
     pushd ../coreutils-*/
     	./configure --prefix=/tools --enable-install-program=hostname
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
     popd
 }
 
@@ -365,7 +359,7 @@ function compile_gettext(){
     pushd ../gettext-*/
     	EMACS="no" ./configure --prefix=/tools --disable-shared
 
-      make --jobs 9
+      make
 
       cp -fuv gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
     popd
@@ -380,9 +374,9 @@ function compile_make(){
 
     	./configure --prefix=/tools --without-guile
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
     popd
 }
 
@@ -392,7 +386,7 @@ function compile_perl(){
     pushd ../perl-5.32.1/
     	sh Configure -des -Dprefix=/tools -Dlibs=-lm
 
-      make --jobs 9
+      make
 
       cp -fuv perl cpan/podlators/scripts/pod2man /tools/bin
 
@@ -409,9 +403,9 @@ function compile_python(){
     	# sed -i '/def add_multiarch_paths/a \        return' setup.py
       ./configure --prefix=/tools --enable-shared --without-ensurepip
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
     popd
 }
 
@@ -425,9 +419,9 @@ function compile_util-linux(){
         --without-systemdsystemunitdir        \
         --without-ncurses
 
-      make --jobs 9
+      make
 
-      make --jobs 9 install
+      make install
     popd
 }
 
@@ -439,9 +433,9 @@ function compile_m4(){
         --host=$BTARGET                       \
         --build=$(../m4-*/build-aux/config.guess)
 
-      make --jobs 9
+      make
 
-      make --jobs 9 DESTDIR=$BROOT install
+      make DESTDIR=$BROOT install
     popd
 }
 
@@ -452,9 +446,9 @@ function compile_basic_packages(){
       pushd ../$pkg-*/
         ./configure --prefix=/tools
 
-        make --jobs 9
+        make
 
-        make --jobs 9 install
+        make install
       popd
     done
 }
@@ -492,53 +486,52 @@ function main(){
 # ------- STAGE 1 -------
 
     compile_binutils_1
-    clean_cwd
 
-    compile_gcc_1
-    clean_cwd
+#     compile_gcc_1
+#     clean_cwd
 
-    install_kernel_headers
+#     install_kernel_headers
 
-    compile_glibc
-    clean_cwd
+#     compile_glibc
+#     clean_cwd
 
-    test_toolchain
+#     test_toolchain
 
-    compile_libcpp
-    clean_cwd
+#     compile_libcpp
+#     clean_cwd
 
-# ------- STAGE 2 -------
+# # ------- STAGE 2 -------
 
-    compile_binutils_2
-    clean_cwd
+#     compile_binutils_2
+#     clean_cwd
 
-    compile_gcc_2
-    clean_cwd
+#     compile_gcc_2
+#     clean_cwd
 
-    test_toolchain
+#     test_toolchain
 
-# ---- PACKAGES/UTILS ----
+# # ---- PACKAGES/UTILS ----
 
-    compile_tcl
-    compile_expect
-    compile_dejagnu
-    compile_check
-    compile_ncurses
-    compile_bash
-    compile_bzip2
-    compile_coreutils
-    compile_gettext
-    compile_make
-    compile_perl
-    compile_python
-    compile_util-linux
-    compile_m4
-    compile_basic_packages
+#     compile_tcl
+#     compile_expect
+#     compile_dejagnu
+#     compile_check
+#     compile_ncurses
+#     compile_bash
+#     compile_bzip2
+#     compile_coreutils
+#     compile_gettext
+#     compile_make
+#     compile_perl
+#     compile_python
+#     compile_util-linux
+#     compile_m4
+#     compile_basic_packages
 
-# --- CLEANING/BACKUP ---
+# # --- CLEANING/BACKUP ---
 
-    compilation_stripping
-    backup_temp-tools
+#     compilation_stripping
+#     backup_temp-tools
 
     exit 0
 }
