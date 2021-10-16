@@ -46,40 +46,29 @@ function compile_binutils_1(){
 }
 
 function compile_gcc_1(){
-    _logger_info "Compiling gcc part 1"
+    _logger_info "Compiling gcc pass 1"
 
-    pushd $BROOT/source/gcc-10.2.0
+    pushd gcc-*/
       mv -v ../mpfr-*/ mpfr/
       mv -v ../gmp-*/ gmp/
       mv -v ../mpc-*/ mpc/
-
-      for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do
-        cp -fuv $file{,.orig}
-        sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' $file.orig > $file
-        echo '
-#undef STANDARD_STARTFILE_PREFIX_1
-#undef STANDARD_STARTFILE_PREFIX_2
-#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
-        touch $file.orig
-      done
 
       case $(uname -m) in
         x86_64)
           sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
         ;;
       esac
-    popd
 
-    ../gcc-10.2.0/configure                          \
-      --target=$BTARGET                              \
-      --prefix=/tools                                \
-      --with-glibc-version=2.24                      \
+      mkdir -v build
+      cd build
+
+    ../configure --prefix=/tools                     \
       --with-sysroot=$BROOT                          \
+      --target=$BTARGET                              \
+      --with-glibc-version=2.11                      \
       --with-newlib                                  \
       --without-headers                              \
-      --with-local-prefix=/tools                     \
-      --with-native-system-header-dir=/tools/include \
+      --enable-initfini-array                        \
       --disable-nls                                  \
       --disable-shared                               \
       --disable-multilib                             \
@@ -87,7 +76,6 @@ function compile_gcc_1(){
       --disable-threads                              \
       --disable-libatomic                            \
       --disable-libgomp                              \
-      --disable-libmpx                               \
       --disable-libquadmath                          \
       --disable-libssp                               \
       --disable-libvtv                               \
@@ -95,11 +83,14 @@ function compile_gcc_1(){
       --enable-languages=c,c++
 
     make
-
     make install
 
-    cat ../gcc/limitx.h ../gcc/glimits.h ../gcc/limity.h > \
+    cd ..
+    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
       `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
+    popd
+
+    wipe_tool gcc
 }
 
 function install_kernel_headers(){
@@ -485,9 +476,7 @@ function main(){
 # ------- STAGE 1 -------
 
     compile_binutils_1
-
-#     compile_gcc_1
-#     clean_cwd
+    compile_gcc_1
 
 #     install_kernel_headers
 

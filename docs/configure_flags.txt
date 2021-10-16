@@ -18,28 +18,25 @@ disable-werror :: Keeps warnings from interrupting the compile process.
 
 ------------------------------------------------------------------------------------------------------------------------------
 
-../gcc-10.2.0/configure                          \
-  --target=$BTARGET                              \
-  --prefix=/tools                                \
-  --with-glibc-version=2.24                      \
-  --with-sysroot=$BROOT                          \
-  --with-newlib                                  \
-  --without-headers                              \
-  --with-local-prefix=/tools                     \
-  --with-native-system-header-dir=/tools/include \
-  --disable-nls                                  \
-  --disable-shared                               \
-  --disable-multilib                             \
-  --disable-decimal-float                        \
-  --disable-threads                              \
-  --disable-libatomic                            \
-  --disable-libgomp                              \
-  --disable-libmpx                               \
-  --disable-libquadmath                          \
-  --disable-libssp                               \
-  --disable-libvtv                               \
-  --disable-libstdcxx                            \
-  --enable-languages=c,c++
+../gcc-10.2.0/configure --prefix=/tools              \
+      --with-sysroot=$BROOT                          \
+      --target=$BTARGET                              \
+      --with-glibc-version=2.11                      \
+      --with-newlib                                  \
+      --without-headers                              \
+      --enable-initfini-array                        \
+      --disable-nls                                  \
+      --disable-shared                               \
+      --disable-multilib                             \
+      --disable-decimal-float                        \
+      --disable-threads                              \
+      --disable-libatomic                            \
+      --disable-libgomp                              \
+      --disable-libquadmath                          \
+      --disable-libssp                               \
+      --disable-libvtv                               \
+      --disable-libstdcxx                            \
+      --enable-languages=c,c++
 
 target :: Tells make to use the target triplet located in our environment variable.
 prefix :: Instructs make to use the specified path to prefix relative pathnames.kss
@@ -48,19 +45,13 @@ with-sysroot :: Specifies the system root and allows us to specify a different
 root path than that of the currently-running kernel.
 with-newlib :: Prevents any code which requires libc from being compiled (because we haven't built libc yet).
 without-headers :: If building a full-blown cross-compiler, GCC needs the header files compatible with the target system. This argument instructs configure and make not to look for them, as we don't need them for this stage.
-with-local-prefix :: This instructs configure and make to search the specified directory for include files.
-with-native-system-header-dir :: This changes the default include path for headers (which is normally /usr/include) to /tools/include. Without this switch, GCC will look in the default location for include files, and that will break our build since our header files are located in /tools/include.
+enable-initfini-array:: This switch forces the use of some internal data structures that are needed but cannot be detected when building
 disable-shared :: Advises GCC to avoid performing static linking. This is a good idea simply because it avoids any conflicts that might arise if GCC were built to use shared libraries, as the system linker might attempt to link them with the libraries installed on the build system.
 disable-decimal :: This GCC extension is not compatible when building GCC for cross compilation.
-disable-float :: See disable-decimal.
-disable-threads :: See disable-decimal.
-disable-libatomic :: See disable-decimal.
-disable-libgomp :: See disable-decimal.
-disable-libmpx :: See disable-decimal.
-disable-libquadmath :: See disable-decimal.
-disable-libssp :: See disable-decimal.
-disable-libvtv :: See disable-decimal.
-disable-libstdcxx :: See disable-decimal.
+a cross compiler.
+--disable-decimal-float, --disable-threads, --disable-libatomic, --disablelibgomp, --disable-libquadmath, --disable-libssp, --disable-libvtv, --disablelibstdcxx::
+These switches disable support for the decimal floating point extension, threading, libatomic, libgomp, libquadmath, libssp, libvtv, and the C++ standard library respectively.
+These features will fail to compile when building a cross-compiler and are not necessary for the task of cross-compiling the temporary libc
 disable-multilib :: This functionality isn't supported on the x86_64 platform.
 enable-languages :: For this stage, we need GCC to compile only C and C++. This disables the compilation of compilers for other languages.
 
