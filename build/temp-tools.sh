@@ -94,19 +94,19 @@ function compile_gcc_1(){
 }
 
 function install_kernel_headers(){
-    _logger_info "Installing Kernel Header Files"
+    _logger_info "Installing Kernel Header (API) Files"
 
-    pushd $BROOT/source/linux-*
+    pushd linux-*/
       make mrproper
-
       make headers
 
       sudo find usr/include -name '.*' -delete
-
       sudo rm -f usr/include/Makefile
 
-      cp -rfuv usr/include /tools
+      cp -rfu usr/include $BROOT/usr
     popd
+
+    wipe_tool linux
 }
 
 function compile_glibc(){
@@ -478,7 +478,7 @@ function main(){
     compile_binutils_1
     compile_gcc_1
 
-#     install_kernel_headers
+    install_kernel_headers
 
 #     compile_glibc
 #     clean_cwd
