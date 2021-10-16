@@ -182,64 +182,6 @@ function compile_libcpp(){
     wipe_tool gcc
 }
 
-# --------------------------- STAGE 2 ------------------------------------------
-
-function compile_binutils_2(){
-    _logger_info "Compiling binutils part 2"
-
-    export CC=$BTARGET-gcc
-    export AR=$BTARGET-ar
-    export RANLIB=$BTARGET-ranlib
-
-    ../binutils-*/configure      \
-      --prefix=/tools            \
-      --disable-nls              \
-      --disable-werror           \
-      --with-lib-path=/tools/lib \
-      --with-sysroot
-
-    make
-
-    make install
-
-    make --directory ld clean
-    make --directory ld LIB_PATH=/usr/lib:/lib
-
-    cp -fuv ld/ld-new /tools/bin
-}
-
-function compile_gcc_2(){
-    _logger_info "Compiling gcc part 2"
-
-    pushd $BROOT/source/gcc-10.2.0
-      cat gcc/limitx.h gcc/glimits.h gcc/limity.h >  \
-        `dirname $($BTARGET-gcc -print-libgcc-file-name)`/include-fixed/limits.h
-    popd
-
-    export CC=$BTARGET-gcc
-    export CXX=$BTARGET-g++
-    export AR=$BTARGET-ar
-    export RANLIB=$BTARGET-ranlib
-
-    ../gcc-10.2.0/configure                          \
-      --prefix=/tools                                \
-      --with-local-prefix=/tools                     \
-      --with-native-system-header-dir=/tools/include \
-      --enable-languages=c,c++                       \
-      --disable-libstdcxx-pch                        \
-      --disable-multilib                             \
-      --disable-bootstrap                            \
-      --disable-libgomp
-
-    make
-
-    make install
-
-    ln -sfv gcc /tools/bin/cc
-
-    unset CC CXX AR RANLIB
-}
-
 # --------------------------- PACKAGES/UTILS -----------------------------------
 
 function compile_tcl(){
@@ -466,6 +408,64 @@ function compile_basic_packages(){
     done
 }
 
+# --------------------------- STAGE 2 ------------------------------------------
+
+function compile_binutils_2(){
+    _logger_info "Compiling binutils part 2"
+
+    export CC=$BTARGET-gcc
+    export AR=$BTARGET-ar
+    export RANLIB=$BTARGET-ranlib
+
+    ../binutils-*/configure      \
+      --prefix=/tools            \
+      --disable-nls              \
+      --disable-werror           \
+      --with-lib-path=/tools/lib \
+      --with-sysroot
+
+    make
+
+    make install
+
+    make --directory ld clean
+    make --directory ld LIB_PATH=/usr/lib:/lib
+
+    cp -fuv ld/ld-new /tools/bin
+}
+
+function compile_gcc_2(){
+    _logger_info "Compiling gcc part 2"
+
+    pushd $BROOT/source/gcc-10.2.0
+      cat gcc/limitx.h gcc/glimits.h gcc/limity.h >  \
+        `dirname $($BTARGET-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+    popd
+
+    export CC=$BTARGET-gcc
+    export CXX=$BTARGET-g++
+    export AR=$BTARGET-ar
+    export RANLIB=$BTARGET-ranlib
+
+    ../gcc-10.2.0/configure                          \
+      --prefix=/tools                                \
+      --with-local-prefix=/tools                     \
+      --with-native-system-header-dir=/tools/include \
+      --enable-languages=c,c++                       \
+      --disable-libstdcxx-pch                        \
+      --disable-multilib                             \
+      --disable-bootstrap                            \
+      --disable-libgomp
+
+    make
+
+    make install
+
+    ln -sfv gcc /tools/bin/cc
+
+    unset CC CXX AR RANLIB
+}
+
 # --------------------------- CLEANING/BACKUP -----------------------------------
 
 function compilation_stripping(){
@@ -507,17 +507,7 @@ function main(){
 
     compile_libcpp
 
-# # ------- STAGE 2 -------
-
-#     compile_binutils_2
-#     clean_cwd
-
-#     compile_gcc_2
-#     clean_cwd
-
-#     test_toolchain
-
-# # ---- PACKAGES/UTILS ----
+# ---- PACKAGES/UTILS ----
 
 #     compile_tcl
 #     compile_expect
@@ -535,8 +525,17 @@ function main(){
 #     compile_m4
 #     compile_basic_packages
 
-# # --- CLEANING/BACKUP ---
+# # ------ STAGE 2 -------
 
+#     compile_binutils_2
+#     clean_cwd
+
+#     compile_gcc_2
+#     clean_cwd
+
+#     test_toolchain
+
+# --- CLEANING/BACKUP ---
 #     compilation_stripping
 #     backup_temp-tools
 
