@@ -30,6 +30,8 @@ function check_yaac(){
     dnf reinstall -y bison
 
     ln -sfv `which bison` /bin/yacc
+
+    bash $ROOT_DIR/libs/version-check.sh
 }
 
 function create_temp-build_user(){
@@ -46,26 +48,40 @@ set +h # disables history command path
 umask 022 # sets file creation permission
 LC_ALL=POSIX
 BROOT=/build
-BTARGET=x86_64-BROOT-linux-gnu
-PATH=/tools/bin:/bin:/usr/bin
-export LC_ALL BROOT BTARGET PATH
+BTARGET=$(uname -m)-BROOT-linux-gnu
+PATH=/tools/bin:/usr/bin
+if [ ! -L /bin ]; then PATH=$PATH:/bin; fi
+CONFIG_SITE=$BROOT/usr/share/config.site
+export LC_ALL BROOT BTARGET PATH CONFIG_SITE
 EOF
+
+    # this file could potentially break the build, restore it once build is done
+    [ ! -f /etc/bash.bashrc ] || mv -v /etc/bash.bashrc{,.NOUSE}
 }
 
 function create_temp-build_dirs(){
     _logger_info "Creating build directories"
 
-    mkdir -vp $BROOT/{boot,source/build,tools/lib}
+    install -dv -m 1777 $BROOT/{boot,backup,etc,var,tools}
+    install -dv -m 1777 $BROOT/{source,usr/{{,s}bin,lib}}
+
+    for dir in {,s}bin lib; do
+      ln -sfv $BROOT/{usr/,}$dir
+    done
+
+    case $(uname -m) in
+      x86_64)
+        mkdir -vp $BROOT/usr/lib64
+        ln -sfv $BROOT/{usr/,}lib64
+      ;;
+    esac
+
     chown -vR $BUSER $BROOT
     ln -sfv $BROOT/tools / # '/tools' -> '$BROOT/tools'
-
-    install -dv -m 1777 $BROOT/backup
 }
 
 function mount_build_disk(){
     _logger_info "Handling build_disk"
-
-    lsblk -l # debug
 
     install -dv -m 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
 
@@ -74,8 +90,8 @@ function mount_build_disk(){
     parted --script /dev/sdb mkpart primary 0% 120MB
     parted --script /dev/sdb set 1 bios_grub on # enables bios_grub flag in part1
     parted --script /dev/sdb mkpart primary 120MB 666MB
-    parted --script /dev/sdb mkpart primary 666MB 28GB
-    parted --script /dev/sdb mkpart primary 28GB  100%
+    parted --script /dev/sdb mkpart primary 666MB 48GB
+    parted --script /dev/sdb mkpart primary 48GB  100%
 
     mkfs.fat /dev/sdb1 # EFI/GRUB partition
     mkfs.xfs -L DESTBOOT /dev/sdb2  # '/boot' partition
@@ -103,25 +119,6 @@ function mount_build_disk(){
     lsblk
 }
 
-function unload_build_packages(){
-    _logger_info "Unloading build packages"
-
-    pushd $BROOT/source
-      sudo -u $BUSER cp -fuv $ROOT_DIR/bin/* . # offline packages unloading
-      sudo -u $BUSER find -name "*.tar*" -exec tar -xf {} \; -delete
-
-      pushd glibc-*/
-        patch -Np1 -i ../glibc-*-fhs-1.patch
-      popd
-
-      pushd m4-*/
-        # fixes required by glibc-2.28
-        sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' lib/*.c
-        echo "#define _IO_IN_BACKUP 0x100" >> lib/stdio-impl.h
-      popd
-    popd
-}
-
 function restore_temp-tools(){
     if [ -f "$ROOT_DIR/backup/backup-temp-tools-$BVERSION.tar.xz" ]; then
       _logger_info "Restoring build temptools"
@@ -145,7 +142,7 @@ function main(){
 
     mount_build_disk
 
-    unload_build_packages
+    _unload_build_packages
 
     restore_temp-tools
 
