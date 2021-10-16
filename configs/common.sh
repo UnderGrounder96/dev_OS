@@ -9,6 +9,7 @@ BUSER="byol"
 BROOT="/build"
 BTARGET="$(uname -m)-BROOT-linux-gnu"
 BVERSION="1.0.0"
+MAKEFLAGS="--jobs 9"
 CONFIG_SITE=$BROOT/usr/share/config.site
 
 # helper function
@@ -30,4 +31,4 @@ function _unload_build_packages(){
 }
 
 export -f _logger_info _unload_build_packages
-export BUSER BROOT BTARGET BVERSION CONFIG_SITE
+export BUSER BROOT BTARGET BVERSION MAKEFLAGS CONFIG_SITE
