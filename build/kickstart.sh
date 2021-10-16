@@ -15,11 +15,11 @@ function deps_install(){
     env ROOT_DIR="$ROOT_DIR" bash $ROOT_DIR/build/deps.sh
 }
 
-function setup_build(){
+function temp-tools_build(){
     cd $BROOT/source/build
 
     sudo -u $BUSER env ROOT_DIR="$ROOT_DIR"  \
-      bash $ROOT_DIR/build/setup.sh $ROOT_DIR/configs/common.sh
+      bash $ROOT_DIR/build/temp-tools.sh $ROOT_DIR/configs/common.sh
 }
 
 function build_OS(){
@@ -30,7 +30,7 @@ function build_OS(){
 function main(){
     deps_install
 
-    # setup_build
+    # temp-tools_build
 
     # build_OS
 
