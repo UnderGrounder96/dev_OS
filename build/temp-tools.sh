@@ -16,13 +16,6 @@ LOG_FILE="$ROOT_DIR/logs/temp-tools-$(date '+%F_%T').log"
 # exits in case there is a temp-tools backup
 [ -f "$BROOT/backup/VERSION" ] && exit 0
 
-function wipe_tool(){
-    _logger_info "Removing everything from ${1}"
-
-    rm -rf ${1}*/
-    tar -xf ${1}*.tar*
-}
-
 # --------------------------- STAGE 1 ------------------------------------------
 
 function compile_binutils_1(){
@@ -42,16 +35,16 @@ function compile_binutils_1(){
       make install
     popd
 
-    wipe_tool binutils
+    _wipe_tool binutils
 }
 
 function compile_gcc_1(){
     _logger_info "Compiling gcc pass 1"
 
     pushd gcc-*/
-      mv -v ../mpfr-*/ mpfr/
-      mv -v ../gmp-*/ gmp/
-      mv -v ../mpc-*/ mpc/
+      for i in mpfr gmp mpc; do
+        mv ../$i-*/ $i
+      done
 
       case $(uname -m) in
         x86_64)
@@ -62,32 +55,32 @@ function compile_gcc_1(){
       mkdir -v build
       cd build
 
-    ../configure --prefix=/tools                     \
-      --with-sysroot=$BROOT                          \
-      --target=$BTARGET                              \
-      --with-glibc-version=2.11                      \
-      --with-newlib                                  \
-      --without-headers                              \
-      --enable-initfini-array                        \
-      --disable-nls                                  \
-      --disable-shared                               \
-      --disable-multilib                             \
-      --disable-decimal-float                        \
-      --disable-threads                              \
-      --disable-libatomic                            \
-      --disable-libgomp                              \
-      --disable-libquadmath                          \
-      --disable-libssp                               \
-      --disable-libvtv                               \
-      --disable-libstdcxx                            \
-      --enable-languages=c,c++
+      ../configure --prefix=/tools                     \
+        --with-sysroot=$BROOT                          \
+        --target=$BTARGET                              \
+        --with-glibc-version=2.11                      \
+        --with-newlib                                  \
+        --without-headers                              \
+        --enable-initfini-array                        \
+        --disable-nls                                  \
+        --disable-shared                               \
+        --disable-multilib                             \
+        --disable-decimal-float                        \
+        --disable-threads                              \
+        --disable-libatomic                            \
+        --disable-libgomp                              \
+        --disable-libquadmath                          \
+        --disable-libssp                               \
+        --disable-libvtv                               \
+        --disable-libstdcxx                            \
+        --enable-languages=c,c++
 
-    make
-    make install
+      make
+      make install
 
-    cd ..
-    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
-      `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
+      cd ..
+      cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
+        `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
     popd
 }
 
@@ -174,7 +167,7 @@ function compile_libcpp(){
       make DESTDIR=$BROOT install
     popd
 
-    wipe_tool gcc
+    _wipe_tool gcc
 }
 
 # --------------------------- PACKAGES/UTILS -----------------------------------
@@ -360,87 +353,71 @@ function compile_basic_packages(){
 # --------------------------- STAGE 2 ------------------------------------------
 
 function compile_binutils_2(){
-    _logger_info "Compiling binutils part 2"
+    _logger_info "Compiling binutils pass 2"
 
-    export CC=$BTARGET-gcc
-    export AR=$BTARGET-ar
-    export RANLIB=$BTARGET-ranlib
+    pushd binutils-*/
+      mkdir -v build
+      cd build
 
-    ../binutils-*/configure      \
-      --prefix=/tools            \
-      --disable-nls              \
-      --disable-werror           \
-      --with-lib-path=/tools/lib \
-      --with-sysroot
+      ../configure --prefix=/usr   \
+        --host=$BTARGET            \
+        --build=$(../config.guess) \
+        --disable-nls              \
+        --enable-shared            \
+        --disable-werror           \
+        --enable-64-bit-bfd
 
-    make
+      make
+      make DESTDIR=$BROOT install
 
-    make install
-
-    make --directory ld clean
-    make --directory ld LIB_PATH=/usr/lib:/lib
-
-    cp -fuv ld/ld-new /tools/bin
+      install -v -m 755 libctf/.libs/libctf.so.0.0.0 $BROOT/usr/lib
+    popd
 }
 
 function compile_gcc_2(){
-    _logger_info "Compiling gcc part 2"
+    _logger_info "Compiling gcc pass 2"
 
-    pushd $BROOT/source/gcc-10.2.0
-      cat gcc/limitx.h gcc/glimits.h gcc/limity.h >  \
-        `dirname $($BTARGET-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+    pushd gcc-*/
+      for i in mpfr gmp mpc; do
+        tar -xf ../$i-*.tar*
+        mv $i-*/ $i/
+      done
+
+      case $(uname -m) in
+        x86_64)
+          sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
+        ;;
+      esac
+
+      mkdir -v build
+      cd build
+
+      # creates symlink that allows posix threads support
+      mkdir -vp $BTARGET/libgcc
+      ln -sfv ../../../libgcc/gthr-posix.h $BTARGET/libgcc/gthr-default.h
+
+      CC_FOR_TARGET=$BTARGET-gcc ../configure \
+          --prefix=/usr                       \
+          --host=$BTARGET                     \
+          --build=$(../config.guess)          \
+          --with-build-sysroot=$BROOT         \
+          --enable-initfini-array             \
+          --disable-nls                       \
+          --disable-multilib                  \
+          --disable-decimal-float             \
+          --disable-libatomic                 \
+          --disable-libgomp                   \
+          --disable-libquadmath               \
+          --disable-libssp                    \
+          --disable-libvtv                    \
+          --disable-libstdcxx                 \
+          --enable-languages=c,c++
+
+      make
+      make DESTDIR=$BROOT install
+
+      ln -sfv gcc $BROOT/usr/bin/cc
     popd
-
-    export CC=$BTARGET-gcc
-    export CXX=$BTARGET-g++
-    export AR=$BTARGET-ar
-    export RANLIB=$BTARGET-ranlib
-
-    ../gcc-10.2.0/configure                          \
-      --prefix=/tools                                \
-      --with-local-prefix=/tools                     \
-      --with-native-system-header-dir=/tools/include \
-      --enable-languages=c,c++                       \
-      --disable-libstdcxx-pch                        \
-      --disable-multilib                             \
-      --disable-bootstrap                            \
-      --disable-libgomp
-
-    make
-
-    make install
-
-    ln -sfv gcc /tools/bin/cc
-
-    unset CC CXX AR RANLIB
-}
-
-# --------------------------- CLEANING/BACKUP -----------------------------------
-
-function compilation_stripping(){
-    _logger_info "Compilation Cleaning"
-
-    strip --strip-debug /tools/lib/* || true
-    /usr/bin/strip --strip-unneeded /tools/{,s}bin/* || true
-
-    rm -rf /tools/{,share}/{info,man,doc}
-
-    find /tools/lib{,exec} -name \*.la -delete
-}
-
-function backup_temp-tools(){
-    _logger_info "Backing up build temptools"
-
-    cd $BROOT
-
-    sudo rm -rf $BROOT/source
-    mkdir -v $BROOT/source
-
-    _unload_build_packages
-
-    sudo chown -R root: $BROOT/tools
-
-    sudo tar --ignore-failed-read --exclude="source" -cJpf $ROOT_DIR/backup-temp-tools-$BVERSION.tar.xz .
 }
 
 function main(){
@@ -470,17 +447,10 @@ function main(){
 
 # # ------ STAGE 2 -------
 
-#     compile_binutils_2
-#     clean_cwd
+    compile_binutils_2
+    compile_gcc_2
 
-#     compile_gcc_2
-#     clean_cwd
-
-#     test_toolchain
-
-# --- CLEANING/BACKUP ---
-#     compilation_stripping
-#     backup_temp-tools
+    test_toolchain
 
     exit 0
 }

@@ -16,7 +16,7 @@ LOG_FILE="$ROOT_DIR/logs/build-$(date '+%F_%T').log"
 function create_build_dirs(){
     _logger_info "Creating build OS file system dirs"
 
-    mkdir -pv $BROOT/{dev,proc,sys,run}
+    mkdir -vp $BROOT/{dev,proc,sys,run}
 }
 
 function create_device_nodes(){

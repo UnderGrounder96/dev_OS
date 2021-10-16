@@ -17,6 +17,14 @@ function _logger_info(){
     echo -e "\n[$(date '+%d/%b/%Y %T')]: $*...\n"
 }
 
+function _wipe_tool(){
+    _logger_info "Removing everything from ${1}"
+
+    cd $BROOT/source
+    rm -rf ${1}*/
+    tar -xf ${1}*.tar*
+}
+
 function _unload_build_packages(){
     _logger_info "Unloading build packages"
 
