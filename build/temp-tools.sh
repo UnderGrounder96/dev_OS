@@ -469,15 +469,14 @@ function compilation_stripping(){
 function backup_temp-tools(){
     _logger_info "Backing up build temptools"
 
-    cd $BROOT/source
-
-    clean_cwd
-
-    sudo chown -R root: $BROOT/tools
-
     cd $BROOT
 
+    sudo rm -rf $BROOT/source
+    mkdir -v $BROOT/source
+
     _unload_build_packages
+
+    sudo chown -R root: $BROOT/tools
 
     sudo tar --ignore-failed-read --exclude="source" -cJpf $ROOT_DIR/backup-temp-tools-$BVERSION.tar.xz .
 }
