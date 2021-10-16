@@ -161,20 +161,25 @@ function test_toolchain(){
 }
 
 function compile_libcpp(){
-    _logger_info "Compiling GNU C++ Library"
+    _logger_info "Compiling standard C++ Library"
 
-    ../gcc-10.2.0/libstdc++-v3/configure         \
-      --host=$BTARGET                            \
-      --prefix=/tools                            \
-      --disable-multilib                         \
-      --disable-nls                              \
-      --disable-libstdcxx-threads                \
-      --disable-libstdcxx-pch                    \
-      --with-gxx-include-dir=/tools/$BTARGET/include/c++/10.2.0
+    pushd gcc-*/
+      mkdir -v build
+      cd build
 
-    make
+      ../libstdc++-v3/configure --prefix=/usr      \
+        --host=$BTARGET                            \
+        --build=$(../config.guess)                 \
+        --disable-multilib                         \
+        --disable-nls                              \
+        --disable-libstdcxx-pch                    \
+        --with-gxx-include-dir=/tools/$BTARGET/include/c++/11.2.0
 
-    make install
+      make
+      make DESTDIR=$BROOT install
+    popd
+
+    wipe_tool gcc
 }
 
 # --------------------------- STAGE 2 ------------------------------------------
@@ -500,8 +505,7 @@ function main(){
     compile_glibc
     test_toolchain
 
-#     compile_libcpp
-#     clean_cwd
+    compile_libcpp
 
 # # ------- STAGE 2 -------
 

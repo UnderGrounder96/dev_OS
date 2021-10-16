@@ -72,14 +72,13 @@ with-headers :: Specifies the location of header files, so libc knows what featu
 libc_cv_slibdir :: This ensures that the library is installed in /usr/lib instead of the default /lib64 on 64 bit machines.
 ------------------------------------------------------------------------------------------------------------------------------
 
-../gcc-10.2.0/libstdc++-v3/configure         \
-  --host=$BTARGET                            \
-  --prefix=/tools                            \
-  --disable-multilib                         \
-  --disable-nls                              \
-  --disable-libstdcxx-threads                \
-  --disable-libstdcxx-pch                    \
-  --with-gxx-include-dir=/tools/$BTARGET/include/c++/6.2.0
+../gcc-*/libstdc++-v3/configure --prefix=/usr    \
+      --host=$BTARGET                            \
+      --build=$(../config.guess)                 \
+      --disable-multilib                         \
+      --disable-nls                              \
+      --disable-libstdcxx-pch                    \
+      --with-gxx-include-dir=/tools/$BTARGET/include/c++/11.2.0
 
 host :: Specifies the use the cross compiler we have just built instead of the one in /usr/bin.
 disable-libstdcxx-pch :: This switch prevents the installation of precompiled include files, which are not needed at this stage.
