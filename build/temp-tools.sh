@@ -11,7 +11,7 @@ COMMON="${1}"
 source $COMMON
 source ~/.bashrc
 
-LOG_FILE="$ROOT_DIR/logs/setup-$(date '+%F_%T').log"
+LOG_FILE="$ROOT_DIR/logs/temp-tools-$(date '+%F_%T').log"
 
 # exits in case there is a temp-tools backup
 [ -f "$BROOT/backup/VERSION" ] && exit 0
