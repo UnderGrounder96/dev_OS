@@ -15,7 +15,6 @@ with-sysroot :: Tells the configure script to look in the specified directory fo
 target :: Because the triplet we've defined is slightly different than what will be determined by configure itself, the binutils source needs to be compiled to accommodate cross-linking. This is necessary because we want to ensure a "clean room" build, without any artifacts from the build system.
 disable-els :: Disables internationalization, which we don't need at this stage.
 disable-werror :: Keeps warnings from interrupting the compile process.
-
 ------------------------------------------------------------------------------------------------------------------------------
 
 ../gcc-*/configure --prefix=/tools                   \
@@ -54,7 +53,6 @@ These switches disable support for the decimal floating point extension, threadi
 These features will fail to compile when building a cross-compiler and are not necessary for the task of cross-compiling the temporary libc
 disable-multilib :: This functionality isn't supported on the x86_64 platform.
 enable-languages :: For this stage, we need GCC to compile only C and C++. This disables the compilation of compilers for other languages.
-
 ------------------------------------------------------------------------------------------------------------------------------
 
 ../glibc-*/configure --prefix=/usr          \
@@ -84,6 +82,22 @@ host :: Specifies the use the cross compiler we have just built instead of the o
 disable-libstdcxx-pch :: This switch prevents the installation of precompiled include files, which are not needed at this stage.
 with-gxx-include-dir :: This is the location where the C++ compiler should search for the standard include files. In a normal build, this information is automatically passed to the libstdc++ configure options from the top level directory. In our case, this information must be explicitly given.
 
+./ncurses-*/configure --prefix=/usr \
+      --host=$BTARGET               \
+      --build=$(./config.guess)     \
+      --mandir=/usr/share/man       \
+      --with-manpage-format=normal  \
+      --with-shared                 \
+      --without-debug               \
+      --without-ada                 \
+      --without-normal              \
+      --enable-widec
+
+with-manpage-format :: This prevents Ncurses installing compressed manual pages, which may happen if the host distribution itself has compressed manual pages.
+without-ada :: This ensures that Ncurses does not build support for the Ada compiler which may be present on the host but will not be available once we enter the chroot environment.
+enable-widec :: This switch causes wide-character libraries (e.g., libncursesw.so.6.2) to be built instead of normal ones (e.g., libncurses.so.6.2). These wide-character libraries are usable in both multibyte and traditional 8-bit locales, while normal libraries work properly only in 8-bit locales. Wide-character and normal libraries are source-compatible, but not binary-compatible.
+without-normal ::This switch disables building and installing most static libraries.
+
 --------------------------------------------------- Stage 2 --------------------------------------------------------------------
 
 export CC=$BTARGET-gcc
@@ -99,7 +113,6 @@ export RANLIB=$BTARGET-ranlib
 
 with-sysroot :: Specifying no value here enables the linker to find shared libraries required by other objects. Without this flag, make may not be able to locate and link some required libraries.
 with-lib-path :: Here we're instructing make to use the specified directory explicitly.
-
 ------------------------------------------------------------------------------------------------------------------------------
 
 PKG_CONFIG= ./util-linux-*.*.*/configure --prefix=/tools \

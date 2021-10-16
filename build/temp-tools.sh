@@ -89,8 +89,6 @@ function compile_gcc_1(){
     cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
       `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
     popd
-
-    wipe_tool gcc
 }
 
 function install_kernel_headers(){
@@ -105,8 +103,6 @@ function install_kernel_headers(){
 
       cp -rfu usr/include $BROOT/usr
     popd
-
-    wipe_tool linux
 }
 
 function compile_glibc(){
@@ -126,7 +122,7 @@ function compile_glibc(){
       mkdir -v build
       cd build
 
-      # Ensure 'ldconfig' and 'sln' utilites are installed into /usr/sbin
+      # ensures 'ldconfig' and 'sln' utilites are installed into /usr/sbin
       echo "rootsbindir=/usr/sbin" > configparms
 
       ../configure --prefix=/usr              \
@@ -143,8 +139,6 @@ function compile_glibc(){
 
       $BROOT/tools/libexec/gcc/$BTARGET/*/install-tools/mkheaders
     popd
-
-    wipe_tool glibc
 }
 
 function test_toolchain(){
@@ -164,6 +158,7 @@ function compile_libcpp(){
     _logger_info "Compiling standard C++ Library"
 
     pushd gcc-*/
+      rm -rf build
       mkdir -v build
       cd build
 
@@ -184,230 +179,184 @@ function compile_libcpp(){
 
 # --------------------------- PACKAGES/UTILS -----------------------------------
 
-function compile_tcl(){
-    _logger_info "Compiling TCL"
-
-    pushd ../tcl*/unix/
-      ./configure --prefix=/tools
-
-      make
-
-      make install
-
-      chmod -v u+w /tools/lib/libtcl*.*.so
-
-      make install-private-headers
-
-      ln -sfv tclsh8.6 /tools/bin/tclsh
-    popd
-}
-
-function compile_expect(){
-    _logger_info "Compiling expect"
-
-    pushd ../expect*/
-      cp -fuv configure{,.orig}
-
-      sed 's:/usr/local/bin:/bin:' configure.orig > configure
-
-      ./configure --prefix=/tools       \
-        --with-tcl=/tools/lib           \
-        --with-tclinclude=/tools/include
-
-      make
-
-      make SCRIPTS="" install # will skip including supplemental scripts
-    popd
-}
-
-function compile_dejagnu(){
-    _logger_info "Compiling dejagnu"
-
-    pushd ../dejagnu-*/
-      ./configure --prefix=/tools
-
-      make install
-    popd
-}
-
-function compile_check(){
-    _logger_info "Compiling check"
-
-    pushd ../check-*/
-      PKG_CONFIG= ./configure --prefix=/tools # PKG_CONFIG= prevents any pre-defined pkg-config options
-
-      make
-
-      make install
-    popd
-}
-
 function compile_ncurses(){
     _logger_info "Compiling ncurses"
 
-    pushd ../ncurses-*/
-      sed -i 's/mawk//' configure # ensures that gawk command is found before awk
+    pushd ncurses-*/
+      # ensures that gawk command is found
+      sed -i 's/mawk//' configure
 
-      ./configure --prefix=/tools \
-        --with-shared             \
-        --without-debug           \
-        --without-ada             \
-        --enable-widec            \
-        --enable-overwrite
+      # builds "tic" program on build host
+      mkdir -v build
+      pushd build
+        ../configure
+        make -C include
+        make -C progs tic
+      popd
+
+      ./configure --prefix=/usr      \
+        --host=$BTARGET              \
+        --build=$(./config.guess)    \
+        --mandir=/usr/share/man      \
+        --with-manpage-format=normal \
+        --with-shared                \
+        --without-debug              \
+        --without-ada                \
+        --without-normal             \
+        --enable-widec
 
       make
+      make DESTDIR=$BROOT TIC_PATH=$(pwd)/build/progs/tic install
 
-      make install
-
-      ln -sfv libncursesw.so /tools/lib/libncurses.so
+      # libncurses.so library will be needed by the following built packages
+      echo "INPUT(-lncursesw)" > $BROOT/usr/lib/libncurses.so
     popd
 }
 
 function compile_bash(){
     _logger_info "Compiling bash"
 
-    pushd ../bash-*/
-      ./configure --prefix=/tools --without-bash-malloc
+    pushd bash-*/
+      ./configure --prefix=/usr         \
+        --host=$BTARGET                 \
+        --build=$(support/config.guess) \
+        --without-bash-malloc
 
       make
+      make DESTDIR=$BROOT install
 
-      make install
-
-      ln -sfv bash /tools/bin/sh
-    popd
-}
-
-function compile_bzip2(){
-    _logger_info "Compiling bzip2"
-
-    pushd ../bzip2-*/
-      make --file Makefile-libbz2_so
-
-      make clean
-
-      make
-
-      make PREFIX=/tools install
-
-      cp -fuv bzip2-shared /tools/bin/bzip2
-      cp -afuv libbz2.so* /tools/lib
-
-      ln -sfv libbz2.so.1.0 /tools/lib/libbz2.so
+      ln -sfv bash $BROOT/bin/sh
     popd
 }
 
 function compile_coreutils(){
     _logger_info "Compiling coreutils"
 
-    pushd ../coreutils-*/
-    	./configure --prefix=/tools --enable-install-program=hostname
+    pushd coreutils-*/
+      ./configure --prefix=/usr                 \
+        --host=$BTARGET                         \
+        --build=$(build-aux/config.guess)       \
+        --enable-install-program=hostname       \
+        --enable-no-install-program=kill,uptime
 
       make
+      make DESTDIR=$BROOT install
 
-      make install
+      # moves programs to their final expected locations.
+      mv -v $BROOT/usr/bin/chroot $BROOT/usr/sbin
+
+      mkdir -vp $BROOT/usr/share/man/man8
+      sed -i 's/"1"/"8"/' $BROOT/usr/share/man/man1/chroot.1
+      mv -v $BROOT/usr/share/man/man1/chroot.1 $BROOT/usr/share/man/man8/chroot.8
     popd
 }
 
-function compile_gettext(){
-    _logger_info "Compiling gettext"
+function compile_file(){
+    _logger_info "Compiling file"
 
-    pushd ../gettext-*/
-    	EMACS="no" ./configure --prefix=/tools --disable-shared
+    pushd file-*/
+      mkdir -v build
+      pushd build
+        ../configure --disable-libseccomp  \
+          --disable-bzlib                  \
+          --disable-xzlib                  \
+          --disable-zlib
+        make
+      popd
+
+      ./configure --prefix=/usr   \
+        --host=$BTARGET           \
+        --build=$(./config.guess)
+
+      make FILE_COMPILE=$(pwd)/build/src/file
+      make DESTDIR=$BROOT install
+    popd
+}
+
+function compile_findutils(){
+    _logger_info "Compiling findutils"
+
+    pushd findutils-*/
+      ./configure --prefix=/usr         \
+        --host=$BTARGET                 \
+        --localstatedir=/var/lib/locate \
+        --build=$(build-aux/config.guess)
 
       make
+      make DESTDIR=$BROOT install
+    popd
+}
 
-      cp -fuv gettext-tools/src/{msgfmt,msgmerge,xgettext} /tools/bin
+function compile_gawk(){
+    _logger_info "Compiling gawk"
+
+    pushd gawk-*/
+      sed -i 's/extras//' Makefile.in
+
+      ./configure --prefix=/usr   \
+        --host=$BTARGET           \
+        --build=$(./config.guess)
+
+      make
+      make DESTDIR=$BROOT install
     popd
 }
 
 function compile_make(){
     _logger_info "Compiling make"
 
-    pushd ../make-*/
-      # workaround an error caused by glibc-2.27:
-      # sed -i '211,217 d; 219,229 d; 232 d' glob/glob.c
-
-    	./configure --prefix=/tools --without-guile
+    pushd make-*/
+      ./configure --prefix=/usr   \
+        --host=$BTARGET           \
+        --without-guile           \
+        --build=$(build-aux/config.guess)
 
       make
-
-      make install
+      make DESTDIR=$BROOT install
     popd
 }
 
-function compile_perl(){
-    _logger_info "Compiling perl"
+function compile_xz(){
+    _logger_info "Compiling xz"
 
-    pushd ../perl-5.32.1/
-    	sh Configure -des -Dprefix=/tools -Dlibs=-lm
-
-      make
-
-      cp -fuv perl cpan/podlators/scripts/pod2man /tools/bin
-
-      mkdir -vp /tools/lib/perl5/5.32.1
-
-      cp -rfuv lib/* /tools/lib/perl5/5.32.1
-    popd
-}
-
-function compile_python(){
-    _logger_info "Compiling Python"
-
-    pushd ../Python-*/
-    	# sed -i '/def add_multiarch_paths/a \        return' setup.py
-      ./configure --prefix=/tools --enable-shared --without-ensurepip
+    pushd xz-*/
+      ./configure --prefix=/usr           \
+        --host=$BTARGET                   \
+        --disable-static                  \
+        --build=$(build-aux/config.guess) \
+        --docdir=/usr/share/doc/xz-*
 
       make
-
-      make install
-    popd
-}
-
-function compile_util-linux(){
-    _logger_info "Compiling util-linux"
-
-    pushd ../util-linux-*/
-    	PKG_CONFIG= ./configure --prefix=/tools \
-        --without-python                      \
-        --disable-makeinstall-chown           \
-        --without-systemdsystemunitdir        \
-        --without-ncurses
-
-      make
-
-      make install
-    popd
-}
-
-function compile_m4(){
-    _logger_info "Compiling m4"
-
-    pushd ../m4-*/
-      ./configure --prefix=/tools             \
-        --host=$BTARGET                       \
-        --build=$(../m4-*/build-aux/config.guess)
-
-      make
-
       make DESTDIR=$BROOT install
     popd
 }
 
 function compile_basic_packages(){
-    for pkg in {bison,diffutils,file,findutils,gawk,grep,gzip,patch,sed,tar,texinfo,xz}; do
+    for pkg in diffutils grep gzip sed; do
       _logger_info "Compiling $pkg"
 
-      pushd ../$pkg-*/
-        ./configure --prefix=/tools
+      pushd $pkg-*/
+        ./configure --prefix=/usr \
+          --host=$BTARGET
 
         make
+        make DESTDIR=$BROOT install
+      popd
+    done
 
-        make install
+    for pkg in m4 patch tar; do
+      _logger_info "Compiling $pkg"
+
+      pushd $pkg-*/
+        ./configure --prefix=/usr          \
+          --host=$BTARGET                  \
+          --build=$(build-aux/config.guess)
+
+        make
+        make DESTDIR=$BROOT install
       popd
     done
 }
-
 # --------------------------- STAGE 2 ------------------------------------------
 
 function compile_binutils_2(){
@@ -509,21 +458,15 @@ function main(){
 
 # ---- PACKAGES/UTILS ----
 
-#     compile_tcl
-#     compile_expect
-#     compile_dejagnu
-#     compile_check
-#     compile_ncurses
-#     compile_bash
-#     compile_bzip2
-#     compile_coreutils
-#     compile_gettext
-#     compile_make
-#     compile_perl
-#     compile_python
-#     compile_util-linux
-#     compile_m4
-#     compile_basic_packages
+    compile_ncurses
+    compile_bash
+    compile_coreutils
+    compile_file
+    compile_findutils
+    compile_gawk
+    compile_make
+    compile_xz
+    compile_basic_packages
 
 # # ------ STAGE 2 -------
 
