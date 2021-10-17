@@ -112,11 +112,7 @@ function compile_glibc(){
         ;;
       esac
 
-      mkdir -v build
       cd build
-
-      # ensures 'ldconfig' and 'sln' utilites are installed into /usr/sbin
-      echo "rootsbindir=/usr/sbin" > configparms
 
       ../configure --prefix=/usr              \
         --host=$BTARGET                       \

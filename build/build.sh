@@ -47,8 +47,6 @@ function changing_build_ownership(){
     # copy lib,config files to be used inside chroot jail
     cp -rfuv $ROOT_DIR/{libs,configs} $BROOT
 
-    rm -rf $BROOT/source/*
-
     chown -vR root: $BROOT/{boot,usr,lib,var,etc,tools,{,s}bin}
 
     case $(uname -m) in
@@ -57,6 +55,7 @@ function changing_build_ownership(){
         ;;
     esac
 
+    rm -rf $BROOT/source/*
     _unload_build_packages
 }
 

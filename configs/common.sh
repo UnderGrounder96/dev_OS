@@ -33,6 +33,11 @@ function _unload_build_packages(){
       sudo -u $BUSER find -name "*.tar*" -exec tar -xf {} \;
 
       pushd glibc-*/
+        sudo -u $BUSER mkdir -v build
+
+        # ensures 'ldconfig' and 'sln' utilites are installed into /usr/sbin
+        echo "rootsbindir=/usr/sbin" | sudo -u $BUSER tee build/configparms
+
         patch -Np1 -i ../glibc-*-fhs-1.patch
       popd
     popd
