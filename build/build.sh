@@ -85,6 +85,16 @@ function backup_tmp_OS(){
     tar --exclude="source" -cJpf $ROOT_DIR/backup-temp-OS-$BVERSION.tar.xz .
 }
 
+function build_tools(){
+    _logger_info "Building bundled OS tools"
+
+    # build packages in chroot environment
+    chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
+      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ "    \
+      PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
+      -c "sh /libs/tools.sh /configs/common.sh"
+}
+
 function main(){
     create_kernel_dirs
 
@@ -102,6 +112,8 @@ function main(){
 
       backup_tmp_OS
     fi
+
+    build_tools
 
     exit 0
 }
