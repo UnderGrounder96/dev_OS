@@ -25,10 +25,10 @@ function compile_binutils_1(){
       mkdir -v build
       cd build
 
-      ../configure --prefix=/tools   \
-        --with-sysroot=$BROOT        \
-        --target=$BTARGET            \
-        --disable-nls                \
+      ../configure --prefix=$BROOT/tools \
+        --with-sysroot=$BROOT            \
+        --target=$BTARGET                \
+        --disable-nls                    \
         --disable-werror
 
       make
@@ -55,7 +55,7 @@ function compile_gcc_1(){
       mkdir -v build
       cd build
 
-      ../configure --prefix=/tools                     \
+      ../configure --prefix=$BROOT/tools               \
         --with-sysroot=$BROOT                          \
         --target=$BTARGET                              \
         --with-glibc-version=2.11                      \

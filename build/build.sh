@@ -13,8 +13,8 @@ unset BTARGET
 
 LOG_FILE="$ROOT_DIR/logs/build-$(date '+%F_%T').log"
 
-function create_build_dirs(){
-    _logger_info "Creating build OS file system dirs"
+function create_kernel_dirs(){
+    _logger_info "Creating kernel file system dirs"
 
     mkdir -vp $BROOT/{dev,proc,sys,run}
 }
@@ -31,7 +31,7 @@ function mount_build_dirs(){
 
     mount -v --bind /dev $BROOT/dev # populate /dev
 
-    mount -vt devpts devpts $BROOT/dev/pts --options gid=5,mode=620
+    mount -vt devpts devpts $BROOT/dev/pts --options mode=620
     mount -vt proc proc $BROOT/proc
     mount -vt sysfs sysfs $BROOT/sys
     mount -vt tmpfs tmpfs $BROOT/run
@@ -41,28 +41,67 @@ function mount_build_dirs(){
     fi
 }
 
-function entering_chroot_jail(){
-    _logger_info "Entering chroot jail"
+function changing_build_ownership(){
+    _logger_info "Changing $BROOT ownership"
+
+    rm -rf $BROOT/source/*
+
+    chown -vR root: $BROOT/{boot,usr,lib,var,etc,tools,{,s}bin}
+
+    case $(uname -m) in
+      x86_64)
+        chown -vR root: $BROOT/lib64
+        ;;
+    esac
+
+    _unload_build_packages
+}
+
+function restore_temp-tools(){
+    _logger_info "Restoring build temptools"
+
+    tar -xpf $ROOT_DIR/backup/backup*$BVERSION*.tar*
+}
+
+function build_extra_temp_tools(){
+    _logger_info "Building additional temp-tools in chroot jail"
 
     # copy lib,config files to be used inside chroot jail
     cp -rfuv $ROOT_DIR/{libs,configs} $BROOT
 
     # continue build in chroot environment
-    chroot "$BROOT" /tools/bin/env -i                 \
-      TERM="$TERM"  PS1="\u:\w\$ "  HOME="/root"      \
-      PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
-      /tools/bin/bash --login +h                      \
+    chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
+      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ "    \
+      PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
       -c "sh /libs/base.sh /configs/common.sh"
 }
 
+function saving_tmp_OS(){
+    _logger_info "Backing up tmp OS"
+
+    umount $BROOT/dev{/pts,}
+    umount $BROOT/{proc,sys,run}
+
+    tar --exclude="source" -cJpf $ROOT_DIR/backup-temp-OS-$BVERSION.tar.xz .
+}
+
 function main(){
-    create_build_dirs
+    create_kernel_dirs
 
     create_device_nodes
 
     mount_build_dirs
 
-    entering_chroot_jail
+    changing_build_ownership
+
+    if [ -f "$BROOT/backup/VERSION" ]; then
+      restore_temp-tools
+
+    else
+      build_extra_temp_tools
+
+      saving_tmp_OS
+    fi
 
     exit 0
 }

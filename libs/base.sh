@@ -11,74 +11,68 @@ COMMON="${1}"
 source $COMMON
 unset BTARGET
 
-function clean_cwd(){
-    _logger_info "Removing everything from $PWD"
-
-    local cwd=$PWD
-
-    cd $cwd/..
-    rm -rf $cwd
-    mkdir -vp $cwd
-    cd $cwd
-}
-
 function creating_os_dirs() {
     _logger_info "Creating OS dirs"
 
-    cd /source/build
+    cd /source
 
-    mkdir -vp /{media/{floppy,cdrom},srv}
-    mkdir -vp /{{,s}bin,boot,etc/{opt,sysconfig},home,lib/firmware,mnt,opt}
+    mkdir -vp /{boot,home,mnt,opt,srv}
+    mkdir -vp /{lib/firmware,etc/{opt,sysconfig},media/{floppy,cdrom}}
 
-    mkdir -vp /usr/libexec
-    mkdir -vp /usr/{,local/}{{,s}bin,include,lib,src}
+    mkdir -vp /usr/local/{{,s}bin,lib}
+    mkdir -vp /usr/{local,share}/games
+    mkdir -vp /usr/{,local/}{include,src}
     mkdir -vp /usr/{,local/}share/{color,dict,doc,info,locale,misc}
     mkdir -vp /usr/{,local/}share/{terminfo,zoneinfo,man/man{1..8}}
 
-    mkdir -vp /var/{lib/{color,misc,locate},opt,cache,local,log,mail,spool}
+    mkdir -vp /var/{cache,local,log,mail,opt,spool,lib/{color,misc,locate}}
 
     install -dv -m 0750 /root
     install -dv -m 1777 /tmp /var/tmp
 
     ln -sfv /run /var/run
     ln -sfv /run/lock /var/lock
-
-    case $(uname -m) in
-      x86_64)
-        ln -sfv lib /lib64
-        ln -sfv lib /usr/lib64
-        ln -sfv lib /usr/local/lib64
-      ;;
-    esac
 }
 
 function create_essential_files(){
     _logger_info "Creating essential OS files and symlinks"
 
+    # creates system logs
     touch /var/log/{btmp,lastlog,faillog,wtmp}
 
-    chmod -v 664  /var/log/lastlog
     chmod -v 600  /var/log/btmp
+    chmod -v 664  /var/log/lastlog
 
-    ln -sfv /tools/bin/perl /usr/bin
-    ln -sfv /tools/bin/{bash,cat,echo,pwd,stty} /bin
-    ln -sfv /tools/lib/libgcc_s.so{,.1} /usr/lib
-    ln -sfv /tools/lib/libstdc++.so{,.6} /usr/lib
-    ln -sfv bash /bin/sh
-
-    # create symlink for list of the mounted file systems
+    # creates symlink for (old-way) mounted file systems
     ln -sfv /proc/self/mounts /etc/mtab
 
-    # create default users
+    # creates basic hosts file
+    tee /etc/hosts <<EOF
+127.0.0.1  localhost $(hostname)
+::1        localhost
+EOF
+
+    # create default users - added "tester"
     tee /etc/passwd <<EOF
 root:x:0:0:root:/root:/bin/bash
 bin:x:1:1:bin:/dev/null:/bin/false
 daemon:x:6:6:Daemon User:/dev/null:/bin/false
-messagebus:x:18:18:D-Bus Message Daemon User:/var/run/dbus:/bin/false
+messagebus:x:18:18:D-Bus Message Daemon User:/run/dbus:/bin/false
+systemd-bus-proxy:x:72:72:systemd Bus Proxy:/:/bin/false
+systemd-journal-gateway:x:73:73:systemd Journal Gateway:/:/bin/false
+systemd-journal-remote:x:74:74:systemd Journal Remote:/:/bin/false
+systemd-journal-upload:x:75:75:systemd Journal Upload:/:/bin/false
+systemd-network:x:76:76:systemd Network Management:/:/bin/false
+systemd-resolve:x:77:77:systemd Resolver:/:/bin/false
+systemd-timesync:x:78:78:systemd Time Synchronization:/:/bin/false
+systemd-coredump:x:79:79:systemd Core Dumper:/:/bin/false
+uuidd:x:80:80:UUID Generation Daemon User:/dev/null:/bin/false
+systemd-oom:x:81:81:systemd Out Of Memory Daemon:/:/bin/false
 nobody:x:99:99:Unprivileged User:/dev/null:/bin/false
+tester:x:101:101::/dev/null:/bin/bash
 EOF
 
-    # create default groups
+    # create default groups - added "tester"
     tee /etc/group <<EOF
 root:x:0:
 bin:x:1:daemon
@@ -101,676 +95,172 @@ messagebus:x:18:
 systemd-journal:x:23:
 input:x:24:
 mail:x:34:
+kvm:x:61:
+systemd-bus-proxy:x:72:
+systemd-journal-gateway:x:73:
+systemd-journal-remote:x:74:
+systemd-journal-upload:x:75:
+systemd-network:x:76:
+systemd-resolve:x:77:
+systemd-timesync:x:78:
+systemd-coredump:x:79:
+uuidd:x:80:
+systemd-oom:x:81:81:
+wheel:x:97:
 nogroup:x:99:
 users:x:999:
+tester:x:101:
 EOF
 
     chgrp -v utmp /var/log/lastlog
 }
 
-function install_man_pages(){
-    _logger_info "Installing man-pages"
+# ---------------------------- PACKAGES/UTILS ---------------------------------
+function install_libcpp(){
+    _logger_info "Installing Libstd++"
 
-    pushd ../man-pages-*
-      make --jobs 9 install
+    pushd gcc-*/
+      ln -sfv gthr-posix.h libgcc/gthr-default.h
+
+      mkdir -v build
+      cd build
+
+      CXXFLAGS="-g -O2 -D_GNU_SOURCE"            \
+        ../libstdc++-v3/configure --prefix=/usr  \
+        --host=$(uname -m)-BROOT-linux-gnu       \
+        --disable-nls                            \
+        --disable-multilib                       \
+        --disable-libstdcxx-pch
+
+      make
+      make install
     popd
 }
 
-function install_iana_etc(){
-    _logger_info "Installing Iana-etc"
+function install_gettext(){
+    _logger_info "Installing gettext"
 
-    pushd ../iana-etc-*/
-      cp services protocols /etc
+    pushd gettext-*/
+      ./configure --disable-shared
+
+      make
+      cp -fuv gettext-tools/src/{msgfmt,msgmerge,xgettext} /usr/bin
     popd
 }
 
-function install_glibc(){
-    _logger_info "Installing GlibC"
+function install_bison(){
+    _logger_info "Installing bison"
 
-    # create glibc extra configuration folders
-    mkdir -vp /var/cache/nscd /usr/lib/locale /etc/ld.so.conf.d
-
-    pushd ../glibc-*/
-      sed -e '402a\      *result = local->data.services[database_index];' \
-        -i nss/nss_database.c
-    popd
-
-    ../glibc-*/configure --prefix=/usr  \
-      --disable-werror                  \
-      --enable-kernel=3.2               \
-      --enable-stack-protector=strong   \
-      --with-headers=/tools/include
-
-    make --jobs 9
-
-    # make --jobs 9 check || true
-
-    touch /etc/ld.so.conf
-
-    # skips unneeded sanity check
-    sed '/test-installation/s@$(PERL)@echo not running@' -i ../glibc-*/Makefile
-
-    make --jobs 9 install
-
-    cp -fuv ../glibc-*/nscd/nscd.conf /etc/nscd.conf
-
-
-    # install the locales that can make the system respond in a different language
-    localedef -i POSIX -f UTF-8 C.UTF-8 2> /dev/null || true
-    localedef -i cs_CZ -f UTF-8 cs_CZ.UTF-8
-    localedef -i de_DE -f ISO-8859-1 de_DE
-    localedef -i de_DE@euro -f ISO-8859-15 de_DE@euro
-    localedef -i de_DE -f UTF-8 de_DE.UTF-8
-    localedef -i el_GR -f ISO-8859-7 el_GR
-    localedef -i en_GB -f UTF-8 en_GB.UTF-8
-    localedef -i en_HK -f ISO-8859-1 en_HK
-    localedef -i en_PH -f ISO-8859-1 en_PH
-    localedef -i en_US -f ISO-8859-1 en_US
-    localedef -i en_US -f UTF-8 en_US.UTF-8
-    localedef -i es_MX -f ISO-8859-1 es_MX
-    localedef -i fa_IR -f UTF-8 fa_IR
-    localedef -i fr_FR -f ISO-8859-1 fr_FR
-    localedef -i fr_FR@euro -f ISO-8859-15 fr_FR@euro
-    localedef -i fr_FR -f UTF-8 fr_FR.UTF-8
-    localedef -i it_IT -f ISO-8859-1 it_IT
-    localedef -i it_IT -f UTF-8 it_IT.UTF-8
-    localedef -i ja_JP -f EUC-JP ja_JP
-    localedef -i ja_JP -f SHIFT_JIS ja_JP.SIJS 2> /dev/null || true
-    localedef -i ja_JP -f UTF-8 ja_JP.UTF-8
-    localedef -i ru_RU -f KOI8-R ru_RU.KOI8-R
-    localedef -i ru_RU -f UTF-8 ru_RU.UTF-8
-    localedef -i tr_TR -f UTF-8 tr_TR.UTF-8
-    localedef -i zh_CN -f GB18030 zh_CN.GB18030
-    localedef -i zh_HK -f BIG5-HKSCS zh_HK.BIG5-HKSCS
-
-    # ---- Configuring GlibC ----
-
-    # Adding nsswitch.conf
-    tee /etc/nsswitch.conf <<EOF
-# Begin /etc/nsswitch.conf
-
-passwd: files
-group: files
-shadow: files
-
-hosts: files dns
-networks: files
-
-protocols: files
-services: files
-ethers: files
-rpc: files
-
-# End /etc/nsswitch.conf
-EOF
-
-    # Configuring the Dynamic Loader
-    tee /etc/ld.so.conf <<EOF
-# Begin /etc/ld.so.conf
-/usr/local/lib
-/opt/lib
-
-# Add an include directory
-include /etc/ld.so.conf.d/*.conf
-EOF
-
-    # Adding time zone data
-    pushd /source
-      ZONEINFO=/usr/share/zoneinfo
-      mkdir -vp $ZONEINFO/{posix,right}
-
-      for tz in etcetera southamerica northamerica europe africa \
-        antarctica asia australasia backward; do
-
-        zic -L /dev/null   -d $ZONEINFO       ${tz}
-        zic -L /dev/null   -d $ZONEINFO/posix ${tz}
-        zic -L leapseconds -d $ZONEINFO/right ${tz}
-      done
-
-      cp -fuv zone.tab zone1970.tab iso3166.tab $ZONEINFO
-      zic -d $ZONEINFO -p America/New_York
-
-      # set time zone info
-      ln -sfv /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
-      unset ZONEINFO
-    popd
-}
-
-function adjust_toolchain(){
-    _logger_info "Adjusting toolchain"
-
-    # backup existing linker
-    mv -v /tools/bin/{ld,ld-old}
-    mv -v /tools/$(uname -m)-pc-linux-gnu/bin/{ld,ld-old}
-    mv -v /tools/bin/{ld-new,ld}
-    ln -sfv /tools/bin/ld /tools/$(uname -m)-pc-linux-gnu/bin/ld
-
-    # amend the GCC specs file so that it points to the new dynamic linker
-    gcc -dumpspecs | sed -e 's@/tools@@g'                 \
-      -e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
-      -e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' >      \
-      `dirname $(gcc --print-libgcc-file-name)`/specs
-}
-
-function test_toolchain(){
-    _logger_info "Performing Toolchain test"
-
-    echo 'int main(){}' > dummy.c
-    cc dummy.c -v -Wl,--verbose &> dummy.log
-    local test_glibc=$(readelf -l a.out | grep ': /lib')
-
-    echo $test_glibc | grep -w "/lib64/ld-linux-x86-64.so.2"
-
-    # additional checks
-    grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log
-    grep -B1 '^ /usr/include' dummy.log
-    grep 'SEARCH.*/usr/lib' dummy.log | sed 's|; |\n|g'
-    grep "/lib.*/libc.so.6 " dummy.log
-    grep found dummy.log
-
-    rm -fv dummy.* a.out
-}
-
-# ------------------------------- BUILD PKGS -----------------------------------
-
-function install_zlib(){
-    _logger_info "Installing zlib"
-
-    pushd ../zlib-*/
-      ./configure --prefix=/usr
-
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-
-      mv -v /usr/lib/libz.so.* /lib
-      ln -sfv ../../lib/$(readlink /usr/lib/libz.so) /usr/lib/libz.so
-    popd
-}
-
-function install_file(){
-    _logger_info "Installing file"
-
-    pushd ../file-*/
-      ./configure --prefix=/usr
-
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-    popd
-}
-
-function install_readline(){
-    _logger_info "Installing readline"
-
-    pushd ../readline-*/
-      sed -i '/MV.*old/d' Makefile.in
-      sed -i '/{OLDSUFF}/c:' support/shlib-install
-
-      ./configure --prefix=/usr     \
-          --disable-static          \
-          --with-curses             \
-          --docdir=/usr/share/doc/readline-*
-
-      make --jobs 9 SHLIB_LIBS="-L/tools/lib -lncursesw"
-      make --jobs 9 SHLIB_LIBS="-L/tools/lib -lncurses" install
-
-      mv -v /usr/lib/lib{readline,history}.so.* /lib
-      ln -sfv ../../lib/$(readlink /usr/lib/libreadline.so) /usr/lib/libreadline.so
-      ln -sfv ../../lib/$(readlink /usr/lib/libhistory.so ) /usr/lib/libhistory.so
-    popd
-}
-
-function install_bzip2(){
-    _logger_info "Installing Bzip2"
-
-    pushd ../bzip2-*/
-      patch -Np1 -i ../bzip2-*-install_docs-1.patch
-
-      sed -i 's@\(ln -s -f \)$(PREFIX)/bin/@\1@' Makefile
-      sed -i "s@(PREFIX)/man@(PREFIX)/share/man@g" Makefile
-
-      make --jobs 9 --file Makefile-libbz2_so
-      make --jobs 9 clean
-
-      make --jobs 9
-      make --jobs 9 PREFIX=/usr install
-
-      cp -fuv bzip2-shared /bin/bzip2
-      cp -afuv libbz2.so* /lib
-
-      rm -fv /usr/{bin/{bunzip2,bzcat,bzip2},lib/libbz2.a}
-
-      ln -sfv ../../lib/libbz2.so.1.0 /usr/lib/libbz2.so
-      ln -sfv bzip2 /bin/bunzip2
-      ln -sfv bzip2 /bin/bzcat
-    popd
-}
-
-function install_xz(){
-    _logger_info "Installing xz"
-
-    pushd ../xz-*/
-      ./configure --prefix=/usr       \
-        --disable-static              \
-        --docdir=/usr/share/doc/xz-*
-
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-
-      mv -v   /usr/bin/{lzma,unlzma,lzcat,xz,unxz,xzcat} /bin
-      mv -v /usr/lib/liblzma.so.* /lib
-      ln -svf ../../lib/$(readlink /usr/lib/liblzma.so) /usr/lib/liblzma.so
-    popd
-}
-
-function install_zstd(){
-    _logger_info "Installing zstd"
-
-    pushd ../zstd-*/
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 prefix=/usr install
-
-      rm -v /usr/lib/libzstd.a
-      mv -v /usr/lib/libzstd.so.* /lib
-      ln -sfv ../../lib/$(readlink /usr/lib/libzstd.so) /usr/lib/libzstd.so
-    popd
-}
-
-function install_m4(){
-    _logger_info "Installing m4"
-
-    pushd ../m4-*/
-      ./configure --prefix=/usr
-
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-    popd
-}
-
-function install_bc(){
-    _logger_info "Installing bc"
-
-    pushd ../bc-*/
-      PREFIX=/usr CC=gcc ./configure.sh -G -O3
-
-      make --jobs 9
-      # make --jobs 9 test
-      make --jobs 9 install
-    popd
-}
-
-function install_flex(){
-    _logger_info "Installing flex"
-
-    pushd ../flex-*/
+    pushd bison-*/
       ./configure --prefix=/usr \
-        --docdir=/usr/share/doc/flex-* \
-        --disable-static
+        --docdir=/usr/share/doc/bison-*
 
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-
-      ln -sv flex /usr/bin/lex
+      make
+      make install
     popd
 }
 
-function install_tcl(){
-    _logger_info "Installing tcl"
+function install_perl(){
+    _logger_info "Installing perl"
 
-    pushd ../tcl*/
-      SRCDIR=$(pwd)
-      cd unix
-      ./configure --prefix=/usr           \
-        --mandir=/usr/share/man           \
-        $([ "$(uname -m)" = x86_64 ] && echo --enable-64bit)
+    pushd perl-*/
 
-      make --jobs 9
+    # -des: Defaults for all items; Ensures completion of all tasks;
+    #  and Silences non-essential output.
+    sh Configure -des -Dprefix=/usr -Dvendorprefix=/usr \
+      -Dprivlib=/usr/lib/perl5/5.34/core_perl           \
+      -Darchlib=/usr/lib/perl5/5.34/core_perl           \
+      -Dsitelib=/usr/lib/perl5/5.34/site_perl           \
+      -Dsitearch=/usr/lib/perl5/5.34/site_perl          \
+      -Dvendorlib=/usr/lib/perl5/5.34/vendor_perl       \
+      -Dvendorarch=/usr/lib/perl5/5.34/vendor_perl
 
-      sed -e "s|$SRCDIR/unix|/usr/lib|" \
-        -e "s|$SRCDIR|/usr/include|"  \
-        -i tclConfig.sh
-
-      sed -e "s|$SRCDIR/unix/pkgs/tdbc1.1.2|/usr/lib/tdbc1.1.2|" \
-        -e "s|$SRCDIR/pkgs/tdbc1.1.2/generic|/usr/include|"    \
-        -e "s|$SRCDIR/pkgs/tdbc1.1.2/library|/usr/lib/tcl8.6|" \
-        -e "s|$SRCDIR/pkgs/tdbc1.1.2|/usr/include|"            \
-        -i pkgs/tdbc1.1.2/tdbcConfig.sh
-
-      sed -e "s|$SRCDIR/unix/pkgs/itcl4.2.1|/usr/lib/itcl4.2.1|" \
-        -e "s|$SRCDIR/pkgs/itcl4.2.1/generic|/usr/include|"    \
-        -e "s|$SRCDIR/pkgs/itcl4.2.1|/usr/include|"            \
-        -i pkgs/itcl4.2.1/itclConfig.sh
-
-      unset SRCDIR
-
-      # make --jobs test || true
-      make --jobs 9 install
-
-      chmod -v u+w /usr/lib/libtcl8.6.so
-
-      make --jobs 9 install-private-headers
-
-      ln -sfv tclsh8.6 /usr/bin/tclsh
-      mv /usr/share/man/man3/{Thread,Tcl_Thread}.3
+    make
+    make install
     popd
 }
 
-function install_expect(){
-    _logger_info "Install expect"
+function install_python3(){
+    _logger_info "Installing python3"
 
-    pushd ../expect*/
-      ./configure --prefix=/usr         \
-        --with-tcl=/usr/lib             \
-        --enable-shared                 \
-        --mandir=/usr/share/man         \
-        --with-tclinclude=/usr/include
+    pushd Python-*/
+      ./configure --prefix=/usr \
+        --enable-shared         \
+        --without-ensurepip
 
-      make --jobs 9
-      make --jobs 9 test
-      make --jobs 9 install
-
-      ln -svf expect5.45.4/libexpect5.45.4.so /usr/lib
+      make
+      make install
     popd
 }
 
-function install_dejangu() {
-    _logger_info "Install DejaGNU"
+function install_texinfo(){
+    _logger_info "Installing texinfo"
 
-    pushd ../dejagnu-*/
+    pushd texinfo-*/
+      sed -i 's/__attribute_nonnull__/__nonnull/' \
+        gnulib/lib/malloc/dynarray-skeleton.c
+
       ./configure --prefix=/usr
 
-      makeinfo --html --no-split -o doc/dejagnu.html doc/dejagnu.texi
-      makeinfo --plaintext       -o doc/dejagnu.txt  doc/dejagnu.texi
-
-      make --jobs 9 install
-
-      install -dv -m 755  /usr/share/doc/dejagnu-1.6.2
-      install -v -m 644   doc/dejagnu.{html,txt} /usr/share/doc/dejagnu-1.6.2
-
-      make --jobs 9 check
+      make
+      make install
     popd
 }
 
-function install_binutils(){
-    _logger_info "Installing binutils"
+function install_util_linux(){
+    _logger_info "Installing util-linux"
 
-    pushd ../binutils-*/
-      # check to ensure ptys work in the jail
-      expect -c "spawn ls"
+    pushd util-linux-*/
+      mkdir -vp /var/lib/hwclock
 
-      sed -i '/@\tincremental_copy/d' gold/testsuite/Makefile.in
-      # sed -i '63d' etc/texi2pod.pl
-      # find -name \*.1 -delete
+      ADJTIME_PATH="/var/lib/hwclock/adjtime"     \
+        ./configure --libdir=/usr/lib             \
+        --docdir=/usr/share/doc/util-linux-*      \
+        --disable-chfn-chsh                       \
+        --disable-login                           \
+        --disable-nologin                         \
+        --disable-su                              \
+        --disable-setpriv                         \
+        --disable-runuser                         \
+        --disable-pylibmount                      \
+        --disable-static                          \
+        --without-python                          \
+        runstatedir=/run
 
-      ./configure --prefix=/usr     \
-        --enable-gold               \
-        --enable-ld=default         \
-        --enable-plugins            \
-        --enable-shared             \
-        --disable-werror            \
-        --enable-64-bit-bfd         \
-        --with-system-zlib
-
-      make --jobs 9 tooldir=/usr
-      # make --jobs 9 --keep-going check || true
-      make --jobs 4 tooldir=/usr install
-
-      rm -fv /usr/lib/lib{bfd,ctf,ctf-nobfd,opcodes}.a
+      make
+      make install
     popd
 }
 
-function install_gmp(){
-    _logger_info "Install GMP"
+# --------------------------- CLEANING ---------------------------------
 
-    pushd ../gmp-*/
-      cp -fuv {configfsf,config}.guess
-      cp -fuv {configfsf,config}.sub
+function compilation_stripping(){
+    _logger_info "Compilation Cleaning"
 
-      ./configure --prefix=/usr    \
-        --enable-cxx               \
-        --disable-static           \
-        --docdir=/usr/share/doc/gmp-*
+    rm -rf /tools /usr/share/{info,man,doc}/*
 
-      make --jobs 9
-      make --jobs 9 html
-
-      # make --jobs 9 check 2>&1 | tee gmp-check-log
-      # awk '/# PASS:/{total+=$3} ; END{print total}' gmp-check-log
-
-      make --jobs 9 install
-      make --jobs 9 install-html
-    popd
-}
-
-function install_mpfr(){
-    _logger_info "Installing mpfr"
-
-    pushd ../mpfr-*/
-      ./configure --prefix=/usr        \
-        --disable-static               \
-        --enable-thread-safe           \
-        --docdir=/usr/share/doc/mpfr-*
-
-      make --jobs 9
-      make --jobs 9 html
-
-      # make --jobs 9 check
-
-      make --jobs 9 install
-      make --jobs 9 install-html
-    popd
-}
-
-function install_mpc(){
-    _logger_info "Installing mpc"
-
-    pushd ../mpc-*/
-      ./configure --prefix=/usr        \
-        --disable-static               \
-        --docdir=/usr/share/doc/mpc-*
-
-      make --jobs 9
-      make --jobs 9 html
-
-      # make --jobs 9 check
-
-      make --jobs 9 install
-      make --jobs 9 install-html
-    popd
-}
-
-function install_attr(){
-    _logger_info "Installing attr"
-
-    pushd ../attr-*/
-      ./configure --prefix=/usr     \
-        --bindir=/bin               \
-        --disable-static            \
-        --sysconfdir=/etc           \
-        --docdir=/usr/share/doc/attr-*
-
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-
-      mv -v /usr/lib/libattr.so.* /lib
-      ln -sfv ../../lib/$(readlink /usr/lib/libattr.so) /usr/lib/libattr.so
-    popd
-}
-
-function install_acl() {
-    _logger_info "Installing acl"
-
-    pushd ../acl-*/
-      ./configure --prefix=/usr       \
-        --bindir=/bin                 \
-        --disable-static              \
-        --libexecdir=/usr/lib         \
-        --docdir=/usr/share/doc/acl-*
-
-      make --jobs 9
-      make --jobs 9 install
-
-      mv -v /usr/lib/libacl.so.* /lib
-      ln -sfv ../../lib/$(readlink /usr/lib/libacl.so) /usr/lib/libacl.so
-    popd
-}
-
-function install_libcap(){
-    _logger_info "Installing Libcap"
-
-    pushd ../libcap-*/
-      sed -i '/install -m.*STA/d' libcap/Makefile
-
-      make --jobs 9 prefix=/usr lib=lib
-      make --jobs 9 test
-      make --jobs 9 prefix=/usr lib=lib install
-
-      for libname in cap psx; do
-        mv -v /usr/lib/lib${libname}.so.* /lib
-        ln -sfv ../../lib/lib${libname}.so.2 /usr/lib/lib${libname}.so
-        chmod -v 755 /lib/lib${libname}.so.2.48
-      done
-    popd
-}
-
-function install_shadow(){
-    _logger_info "Installing shadow"
-
-    pushd ../shadow-*/
-      sed -i 's/groups$(EXEEXT) //' src/Makefile.in
-
-      find man -name Makefile.in -exec \
-        sed -e 's/groups\.1 / /' -e 's/getspnam\.3 / /' -e 's/passwd\.5 / /'  -i {} \;
-
-      sed -e 's:#ENCRYPT_METHOD DES:ENCRYPT_METHOD SHA512:' \
-        -e 's:/var/spool/mail:/var/mail:'                 \
-        -i etc/login.defs
-
-      ./configure --sysconfdir=/etc --with-group-name-max-length=32
-
-      make --jobs 9
-      make --jobs 9 install
-
-      # enable shadowed passwd
-      pwconv
-
-      # enable shadowed passwd for groups
-      grpconv
-
-      # uncomment the next line to enforce passwd change for root
-      # passwd --expire root
-
-      # disable CREATE_MAIL_SPOOL
-      sed -i 's/yes/no/' /etc/default/useradd
-    popd
-}
-
-function install_gcc(){
-    _logger_info "Installing gcc"
-
-    pushd ../gcc-10.2.0/
-      # case $(uname -m) in
-      #   x86_64)
-      #     sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
-      #   ;;
-      # esac
-
-      LD="ld" ./configure --prefix=/usr  \
-        --enable-languages=c,c++         \
-        --disable-multilib               \
-        --disable-bootstrap              \
-        --with-system-zlib
-
-      make --jobs 9
-
-      # increase default stack test suite limit
-      # ulimit -s 32768
-
-      # make --jobs 9 --keep-going check || true
-      # ./contrib/test_summary
-
-      _logger_info "GCC - TEST3"
-      make --jobs 9 install
-      _logger_info "GCC - TEST4"
-      rm -rf /usr/lib/gcc/$(gcc -dumpmachine)/10.2.0/include-fixed/bits/
-
-      ln -sfv /usr/bin/cpp /lib
-      ln -sfv gcc /usr/bin/cc
-
-      install -dv -m 755 /usr/lib/bfd-plugins
-      ln -sfv ../../libexec/gcc/$(gcc -dumpmachine)/10.2.0/liblto_plugin.so /usr/lib/bfd-plugins/
-
-      test_toolchain
-
-      mkdir -vp /usr/share/gdb/auto-load/usr/lib
-      mv -v /usr/lib/*gdb.py /usr/share/gdb/auto-load/usr/lib
-    popd
-}
-
-function install_pkg_config(){
-    _logger_info "Install pkg-config"
-
-    pushd ../pkg-config-*/
-      ./configure --prefix=/usr                   \
-        --with-internal-glib                      \
-        --disable-host-tool                       \
-        --disable-compile-warnings                \
-        --docdir=/usr/share/doc/pkg-config-*
-
-      make --jobs 9
-      # make --jobs 9 check
-      make --jobs 9 install
-    popd
+    find /usr/lib{,exec} -name \*.la -delete
 }
 
 function main(){
     _logger_info "Executing lib/base.sh"
 
     creating_os_dirs
-    clean_cwd
 
     create_essential_files
 
-    install_man_pages
-    install_iana_etc
-
-    install_glibc
-
-    adjust_toolchain
-
-    test_toolchain
-
     # ------- BUILD PKGS -------
 
-    install_zlib
-    install_file
-    install_readline
-    install_bzip2
-    install_xz
-    install_zstd
-    install_m4
-    install_bc
-    install_flex
-    install_tcl
-    install_expect
-    install_dejangu
-    install_binutils
-    install_gmp
-    install_mpfr
-    install_mpc
-    install_attr
-    install_acl
-    install_libcap
-    install_shadow
-    install_gcc
-    clean_cwd
-    install_pkg_config
+    install_libcpp
+    install_gettext
+    install_bison
+    install_perl
+    install_python3
+    install_texinfo
+    install_util_linux
+
+    # ------- CLEANING ---------
+    compilation_stripping
 
     exit 0
 }

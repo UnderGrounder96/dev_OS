@@ -31,7 +31,7 @@ function check_yaac(){
 
     ln -sfv `which bison` /bin/yacc
 
-    bash $ROOT_DIR/libs/version-check.sh
+    bash $ROOT_DIR/extras/version-check.sh
 }
 
 function create_temp-build_user(){
@@ -49,7 +49,7 @@ umask 022 # sets file creation permission
 LC_ALL=POSIX
 BROOT=/build
 BTARGET=$(uname -m)-BROOT-linux-gnu
-PATH=/tools/bin:/usr/bin
+PATH=$BROOT/tools/bin:/usr/bin
 if [ ! -L /bin ]; then PATH=$PATH:/bin; fi
 CONFIG_SITE=$BROOT/usr/share/config.site
 export LC_ALL BROOT BTARGET PATH CONFIG_SITE
@@ -63,21 +63,20 @@ function create_temp-build_dirs(){
     _logger_info "Creating build directories"
 
     install -dv -m 1777 $BROOT/{boot,backup,etc,var,tools}
-    install -dv -m 1777 $BROOT/{source,usr/{{,s}bin,lib}}
+    install -dv -m 1777 $BROOT/{source,usr/{{,s}bin,lib{,exec}}}
 
     for dir in {,s}bin lib; do
-      ln -sfv $BROOT/{usr/,}$dir
+      ln -sfv {usr/,$BROOT/}$dir
     done
 
     case $(uname -m) in
       x86_64)
         mkdir -vp $BROOT/usr/lib64
-        ln -sfv $BROOT/{usr/,}lib64
+        ln -sfv {usr/,$BROOT/}lib64
       ;;
     esac
 
     chown -vR $BUSER $BROOT
-    ln -sfv $BROOT/tools / # '/tools' -> '$BROOT/tools'
 }
 
 function mount_build_disk(){
@@ -119,15 +118,13 @@ function mount_build_disk(){
     lsblk
 }
 
-function restore_temp-tools(){
-    if [ -f "$ROOT_DIR/backup/backup-temp-tools-$BVERSION.tar.xz" ]; then
-      _logger_info "Restoring build temptools"
-
-      cd $BROOT
-
-      tar -xpf $ROOT_DIR/backup/backup*$BVERSION*.tar*
+function check_for_backup(){
+    if compgen -G "$ROOT_DIR/backup/backup*$BVERSION*.tar*" >/dev/null; then
+      _logger_info "Backup exits! Creating $BROOT/backup/VERSION"
 
       echo $BVERSION > $BROOT/backup/VERSION
+    else
+      _unload_build_packages
     fi
 }
 
@@ -142,9 +139,7 @@ function main(){
 
     mount_build_disk
 
-    _unload_build_packages
-
-    restore_temp-tools
+    check_for_backup
 
     exit 0
 }
