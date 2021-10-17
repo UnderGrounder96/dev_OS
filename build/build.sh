@@ -44,6 +44,9 @@ function mount_build_dirs(){
 function changing_build_ownership(){
     _logger_info "Changing $BROOT ownership"
 
+    # copy lib,config files to be used inside chroot jail
+    cp -rfuv $ROOT_DIR/{libs,configs} $BROOT
+
     rm -rf $BROOT/source/*
 
     chown -vR root: $BROOT/{boot,usr,lib,var,etc,tools,{,s}bin}
@@ -63,20 +66,17 @@ function restore_temp-tools(){
     tar -xpf $ROOT_DIR/backup/backup*$BVERSION*.tar*
 }
 
-function build_extra_temp_tools(){
-    _logger_info "Building additional temp-tools in chroot jail"
+function buid_tmp_OS(){
+    _logger_info "Building temporary OS"
 
-    # copy lib,config files to be used inside chroot jail
-    cp -rfuv $ROOT_DIR/{libs,configs} $BROOT
-
-    # continue build in chroot environment
+    # build temp_OS in chroot environment
     chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
       TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ "    \
       PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
       -c "sh /libs/base.sh /configs/common.sh"
 }
 
-function saving_tmp_OS(){
+function backup_tmp_OS(){
     _logger_info "Backing up tmp OS"
 
     umount $BROOT/dev{/pts,}
@@ -98,9 +98,9 @@ function main(){
       restore_temp-tools
 
     else
-      build_extra_temp_tools
+      buid_tmp_OS
 
-      saving_tmp_OS
+      backup_tmp_OS
     fi
 
     exit 0
