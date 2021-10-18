@@ -613,6 +613,140 @@ function install_gcc(){
     popd
 }
 
+function install_pkg_config(){
+    _logger_info "Install pkg-config"
+
+    pushd pkg-config-*/
+      ./configure --prefix=/usr    \
+        --with-internal-glib       \
+        --disable-host-tool        \
+        --docdir=/usr/share/doc/pkg-config-*
+
+      make
+      # make check
+      make install
+    popd
+}
+
+function install_ncurses(){
+    _logger_info "Install ncurses"
+
+    pushd ncurses-*/
+      ./configure --prefix=/usr   \
+        --mandir=/usr/share/man   \
+        --with-shared             \
+        --without-debug           \
+        --without-normal          \
+        --enable-pc-files         \
+        --enable-widec
+
+      make
+      make install
+
+      # tricks programs into linking with wide-character libraries
+      for lib in ncurses form panel menu ; do
+        echo "INPUT(-l${lib}w)" > /usr/lib/lib${lib}.so
+        ln -sfv ${lib}w.pc /usr/lib/pkgconfig/${lib}.pc
+      done
+
+      # ensures old programs looking for -lcursesm, are still buildable
+      echo "INPUT(-lncursesw)" > /usr/lib/libcursesw.so
+      ln -sfv libncurses.so /usr/lib/libcurses.so
+
+      # removes static library
+      rm -f /usr/lib/libncurses++w.a
+
+      # installs ncurses documentation
+      mkdir -v       /usr/share/doc/ncurses-6.2
+      cp -Rfuv doc/* /usr/share/doc/ncurses-6.2
+
+      # optional - creates non-wide-character ncurses libraries
+      make distclean
+      ./configure --prefix=/usr   \
+        --with-shared             \
+        --without-normal          \
+        --without-debug           \
+        --without-cxx-binding     \
+        --with-abi-version=5
+      make sources libs
+      cp -afuv lib/lib*.so.5* /usr/lib
+    popd
+}
+
+function install_sed(){
+    _logger_info "Installing sed"
+
+    pushd sed-*/
+      ./configure --prefix=/usr
+
+      make
+      make html
+
+      # chown -vR tester .
+      # su tester -c "PATH=$PATH make check"
+
+      make install
+
+      install -d -m 755           /usr/share/doc/sed-4.8
+      install -m 644 doc/sed.html /usr/share/doc/sed-4.8
+    popd
+}
+
+function install_gettext(){
+    _logger_info "Installing gettext"
+
+    pushd gettext-*/
+      ./configure --prefix=/usr    \
+        --disable-static           \
+        --docdir=/usr/share/doc/gettext-*
+
+      make
+      # make check
+
+      make install
+      chmod -v 0755 /usr/lib/preloadable_libintl.so
+    popd
+}
+
+function install_bison(){
+    _logger_info "Installing bison"
+
+    pushd bison-*/
+      ./configure --prefix=/usr --docdir=/usr/share/doc/bison-*
+
+      make
+      # make check
+      make install
+    popd
+}
+
+function install_bash(){
+    _logger_info "Installing bash"
+
+    pushd bash-*/
+      ./configure --prefix=/usr    \
+        --without-bash-malloc      \
+        --with-installed-readline  \
+        --docdir=/usr/share/doc/bash-*
+
+      make
+
+      # chown -vR tester .
+#       su -s /usr/bin/expect tester << EOF
+# set timeout -1
+# spawn make tests
+# expect eof
+# lassign [wait] _ _ _ value
+# exit $value
+# EOF
+
+      make install
+
+      # SKIP switching to built bash
+      # exec /bin/bash --login +h
+    popd
+}
+
 function main(){
     _logger_info "Executing lib/tools.sh"
 
@@ -638,6 +772,12 @@ function main(){
     install_libcap
     install_shadow
     install_gcc
+    install_pkg_config
+    install_ncurses
+    install_sed
+    install_gettext
+    install_bison
+    install_bash
 
     exit 0
 }
