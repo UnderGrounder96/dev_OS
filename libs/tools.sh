@@ -405,6 +405,214 @@ function install_binutils(){
     popd
 }
 
+function install_gmp(){
+    _logger_info "Installing gmp"
+
+    pushd gmp-*/
+      cp -fuv configfsf.sub   config.sub
+      cp -fuv configfsf.guess config.guess
+
+      ./configure --prefix=/usr     \
+        --enable-cxx                \
+        --disable-static            \
+        --docdir=/usr/share/doc/gmp-* #\
+        # --build=x86_64-pc-linux-gnu # uncomment if "Illegal instruction" message appears
+
+      make
+      make html
+
+      # make check 2>&1 | tee gmp-check-log
+      # awk '/# PASS:/{total+=$3} ; END{print total}' gmp-check-log
+
+      make install
+      make install-html
+    popd
+}
+
+function install_mpfr(){
+    _logger_info "Installing mpfr"
+
+    pushd mpfr-*/
+      ./configure --prefix=/usr       \
+        --disable-static              \
+        --enable-thread-safe          \
+        --docdir=/usr/share/doc/mpfr-*
+
+      make
+      make html
+
+      # make check
+
+      make install
+      make install-html
+    popd
+}
+
+function install_mpc(){
+    _logger_info "Installing mpc"
+
+    pushd mpc-*/
+      ./configure --prefix=/usr    \
+        --disable-static           \
+        --docdir=/usr/share/doc/mpc-*
+
+      make
+      # make check
+      make install
+    popd
+}
+
+function install_attr(){
+    _logger_info "Install attr"
+
+    pushd attr-*/
+      ./configure --prefix=/usr   \
+        --sysconfdir=/etc         \
+        --disable-static          \
+        --docdir=/usr/share/doc/attr-*
+
+      make
+      # make check
+      make install
+    popd
+}
+
+function install_acl(){
+    _logger_info "Installing ACL"
+
+    pushd acl-*/
+      ./configure --prefix=/usr     \
+        --disable-static            \
+        --docdir=/usr/share/doc/acl-*
+
+      make
+      # make check # test cases rely on coreutils installation
+      make install
+    popd
+}
+
+function install_libcap(){
+    _logger_info "Install libcap"
+
+    pushd libcap-*/
+      # prevents static libraries installation
+      sed -i '/install -m.*STA/d' libcap/Makefile
+
+      make prefix=/usr lib=lib
+      # make test
+      make prefix=/usr lib=lib install
+
+      # changes shared libraries permissions
+      chmod -v 755 /usr/lib/lib{cap,psx}.so.2.53
+    popd
+}
+
+function install_shadow(){
+    _logger_info "Installing shadow"
+
+    pushd shadow-*/
+      # prevent manual pages installation and groups program
+      sed -i 's/groups$(EXEEXT) //' src/Makefile.in
+      find man -name Makefile.in -exec \
+        sed -e 's/groups\.1 / /' -e 's/getspnam\.3 / /' -e 's/passwd\.5 / /' -i {} \;
+
+      # changes default crypt encprition method to SHA-512, removes /var/spool/mail path
+      # and removes /{,s}bin from path because they are symblinks to their /usr/{,s}bin
+      sed -e 's:#ENCRYPT_METHOD DES:ENCRYPT_METHOD SHA512:' \
+        -e 's:/var/spool/mail:/var/mail:'                 \
+        -e '/PATH=/{s@/sbin:@@;s@/bin:@@}'                \
+        -i etc/login.defs
+
+      # fixes simple programming error
+      sed -e "224s/rounds/min_rounds/" -i libmisc/salt.c
+
+      # this file is hardcoded in some programs
+      touch /usr/bin/passwd
+      ./configure --sysconfdir=/etc --with-group-name-max-length=32
+
+      make
+      make exec_prefix=/usr install
+      make -C man install-man
+
+      mkdir -vp /etc/default
+      useradd --defaults --gid 999
+
+      # enable shadowed passwords (for users)
+      pwconv
+
+      # enable shadowed passwords (for groups)
+      grpconv
+
+      # disables CREATE_MAIL_SPOOL
+      sed -i 's/yes/no/' /etc/default/useradd
+
+      # passwd root
+    popd
+}
+
+function install_gcc(){
+    _logger_info "Installing GCC"
+
+    pushd gcc-*/
+      # fixes an issue breaking libasan.a when using GlibC-2.34
+      sed -e '/static.*SIGSTKSZ/d' \
+        -e 's/return kAltStackSize/return SIGSTKSZ * 4/' \
+        -i libsanitizer/sanitizer_common/sanitizer_posix_libcdep.cpp
+
+      cd build
+
+      LD=ld ../configure --prefix=/usr  \
+        --with-system-zlib              \
+        --disable-multilib              \
+        --disable-bootstrap             \
+        --enable-languages=c,c++
+
+      make
+
+      # increases defaul stack, for testing
+      # ulimit -s 32768
+
+      # chown -vR tester .
+      # su tester -c "PATH=$PATH MAKEFLAGS=$MAKEFLAGS make --keep-going check"
+      # ../contrib/test_summary | grep -A7 Summ
+
+      make install
+
+      # removes unneeded directory
+      rm -rf /usr/lib/gcc/$(gcc -dumpmachine)/*/include-fixed/bits/
+
+      chown -vR root: /usr/lib/gcc/*linux-gnu/*/include{,-fixed}
+
+      # creates "historical" link
+      ln -sfvr /usr/bin/cpp /usr/lib
+
+      # adds a compatibility symlink to enable building programs with Link Time Optimization (LTO)
+      ln -sfv ../../libexec/gcc/$(gcc -dumpmachine)/*/liblto_plugin.so \
+        /usr/lib/bfd-plugins/
+
+
+      # test_toolchain
+      echo 'int main(){}' > dummy.c
+      cc dummy.c -v -Wl,--verbose &> dummy.log
+      local test_glibc=$(readelf -l a.out | grep ': /lib')
+
+      echo $test_glibc | grep -w "/lib64/ld-linux-x86-64.so.2"
+
+      _logger_info "Sanity check - passed"
+
+      grep -B4 '^ /usr/include' dummy.log
+      grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log
+      grep 'SEARCH.*/usr/lib' dummy.log | sed 's|; |\n|g'
+      grep "/lib.*/libc.so.6 " dummy.log
+      grep found dummy.log
+      rm -f dummy.{c,log} a.out
+
+      # moves misplaced file
+      mkdir -vp /usr/share/gdb/auto-load/usr/lib
+      mv -v /usr/lib/*gdb.py /usr/share/gdb/auto-load/usr/lib
+    popd
+}
+
 function main(){
     _logger_info "Executing lib/tools.sh"
 
@@ -422,6 +630,14 @@ function main(){
     install_dejagnu
     install_basic_packages
     install_binutils
+    install_gmp
+    install_mpfr
+    install_mpc
+    install_attr
+    install_acl
+    install_libcap
+    install_shadow
+    install_gcc
 
     exit 0
 }
