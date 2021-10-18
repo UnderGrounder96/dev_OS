@@ -122,6 +122,7 @@ function install_libcpp(){
     pushd gcc-*/
       ln -sfv gthr-posix.h libgcc/gthr-default.h
 
+      rm -rf build
       mkdir -v build
       cd build
 

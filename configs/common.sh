@@ -40,6 +40,16 @@ function _unload_build_packages(){
 
         patch -Np1 -i ../glibc-*-fhs-1.patch
       popd
+
+      pushd gcc-*/
+        sudo -u $BUSER mkdir -v build
+
+        case $(uname -m) in
+          x86_64)
+            sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
+          ;;
+        esac
+      popd
     popd
 }
 

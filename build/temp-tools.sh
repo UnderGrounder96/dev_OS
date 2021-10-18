@@ -46,13 +46,6 @@ function compile_gcc_1(){
         mv ../$i-*/ $i
       done
 
-      case $(uname -m) in
-        x86_64)
-          sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
-        ;;
-      esac
-
-      mkdir -v build
       cd build
 
       ../configure --prefix=$BROOT/tools               \
@@ -162,8 +155,6 @@ function compile_libcpp(){
       make
       make DESTDIR=$BROOT install
     popd
-
-    _wipe_tool gcc
 }
 
 # --------------------------- PACKAGES/UTILS -----------------------------------
@@ -374,18 +365,9 @@ function compile_gcc_2(){
     _logger_info "Compiling gcc pass 2"
 
     pushd gcc-*/
-      for i in mpfr gmp mpc; do
-        tar -xf ../$i-*.tar*
-        mv $i-*/ $i/
-      done
+      rm -rf build
 
-      case $(uname -m) in
-        x86_64)
-          sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
-        ;;
-      esac
-
-      mkdir -v build
+      mkdir build
       cd build
 
       # creates symlink that allows posix threads support
