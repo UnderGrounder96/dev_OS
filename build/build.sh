@@ -81,7 +81,9 @@ function backup_tmp_OS(){
     umount $BROOT/dev{/pts,}
     umount $BROOT/{proc,sys,run}
 
-    tar --exclude="source" -cJpf $ROOT_DIR/backup-temp-OS-$BVERSION.tar.xz .
+    tar --exclude={"source","libs","configs","backup"} -cJpf $ROOT_DIR/backup-temp-OS-$BVERSION.tar.xz .
+
+    mount_build_dirs
 }
 
 function build_tools(){
