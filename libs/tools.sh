@@ -344,7 +344,7 @@ function install_dejagnu(){
       make install
 
       install -dv -m 755 /usr/share/doc/dejagnu-1.6.3
-      install -v -m 644 doc/dejagnu.{html,txt} /usr/share/doc/dejagnu-1.6.3
+      install -v -m 644 doc/dejagnu.{html,txt} /usr/share/doc/dejagnu-*
 
       # make check
     popd
@@ -658,7 +658,7 @@ function install_ncurses(){
 
       # installs ncurses documentation
       mkdir -v       /usr/share/doc/ncurses-6.2
-      cp -Rfuv doc/* /usr/share/doc/ncurses-6.2
+      cp -Rfuv doc/* /usr/share/doc/ncurses-*
 
       # optional - creates non-wide-character ncurses libraries
       make distclean
@@ -688,7 +688,7 @@ function install_sed(){
       make install
 
       install -d -m 755           /usr/share/doc/sed-4.8
-      install -m 644 doc/sed.html /usr/share/doc/sed-4.8
+      install -m 644 doc/sed.html /usr/share/doc/sed-*
     popd
 }
 
@@ -747,6 +747,256 @@ function install_bash(){
     popd
 }
 
+function install_gdbm(){
+    _logger_info "Install gdbm"
+
+    pushd gdbm-*/
+      ./configure --prefix=/usr    \
+          --disable-static         \
+          --enable-libgdbm-compat
+
+      make
+      # make --keep-going check
+      make install
+    popd
+}
+
+function install_gperf(){
+    _logger_info "Installing gperf"
+
+    pushd gperf-*/
+      ./configure --prefix=/usr --docdir=/usr/share/doc/gperf-*
+
+      make
+      # make --jobs 1 check
+      make install
+    popd
+}
+
+function install_expat(){
+    _logger_info "Installing expat"
+
+    pushd expat-*/
+      ./configure --prefix=/usr    \
+        --disable-static \
+        --docdir=/usr/share/doc/expat-*
+
+      make
+      # make check
+      make install
+
+      install -v -m 644 doc/*.{html,png,css} /usr/share/doc/expat-*
+    popd
+}
+
+function install_inetutils(){
+    _logger_info "Installing inetutils"
+
+    pushd inetutils-*/
+      ./configure --prefix=/usr   \
+        --bindir=/usr/bin         \
+        --localstatedir=/var      \
+        --disable-logger          \
+        --disable-whois           \
+        --disable-rcp             \
+        --disable-rexec           \
+        --disable-rlogin          \
+        --disable-rsh             \
+        --disable-servers
+
+      make
+      # make check
+      make install
+
+      mv -v /usr/{,s}bin/ifconfig
+    popd
+}
+
+function install_less(){
+    _logger_info "Installing less"
+
+    pushd less-*/
+      ./configure --prefix=/usr --sysconfdir=/etc
+
+      make
+      make install
+    popd
+}
+
+function install_perl(){
+    _logger_info "Installing perl"
+
+    pushd perl-*/
+      patch -Np1 -i ../perl-*-upstream_fixes-1.patch
+
+      export BUILD_ZLIB=False
+      export BUILD_BZIP2=0
+
+      # -des: Defaults for all items; Ensures completion of all tasks;
+      #  and Silences non-essential output.
+      sh Configure -des -Dprefix=/usr -Dvendorprefix=/usr  \
+        -Dprivlib=/usr/lib/perl5/5.34/core_perl            \
+        -Darchlib=/usr/lib/perl5/5.34/core_perl            \
+        -Dsitelib=/usr/lib/perl5/5.34/site_perl            \
+        -Dsitearch=/usr/lib/perl5/5.34/site_perl           \
+        -Dvendorlib=/usr/lib/perl5/5.34/vendor_perl        \
+        -Dvendorarch=/usr/lib/perl5/5.34/vendor_perl       \
+        -Dman1dir=/usr/share/man/man1                      \
+        -Dman3dir=/usr/share/man/man3                      \
+        -Dpager="/usr/bin/less -isR"                       \
+        -Duseshrplib -Dusethreads
+
+      make
+      # make test
+      make install
+
+      unset BUILD_ZLIB BUILD_BZIP2
+    popd
+}
+
+function install_xml_parser(){
+    _logger_info "Installing XML-Parser"
+
+    pushd XML-Parser-*/
+      perl Makefile.PL
+
+      make
+      # make test
+      make install
+    popd
+}
+
+function install_intltool(){
+    _logger_info "Installing intltool"
+
+    pushd intltool-*/
+      sed -i 's:\\\${:\\\$\\{:' intltool-update.in
+
+      ./configure --prefix=/usr
+
+      make
+      # make check
+      make install
+
+      install -Dv -m 644 doc/I18N-HOWTO /usr/share/doc/intltool-*/I18N-HOWTO
+    popd
+}
+
+function install_automake(){
+    _logger_info "Installing automake"
+
+    pushd automake-*/
+      ./configure --prefix=/usr --docdir=/usr/share/doc/automake-*
+
+      make
+      # make check
+      make install
+    popd
+}
+
+function install_kmod(){
+    _logger_info "Installing kmod"
+
+    pushd kmod-*/
+      ./configure --prefix=/usr   \
+        --sysconfdir=/etc         \
+        --with-xz                 \
+        --with-zstd               \
+        --with-zlib
+
+      make
+      make install
+
+      # creates symlinks for compatibility with Module-Init-Tools package
+      for target in depmod insmod modinfo modprobe rmmod; do
+        ln -sfv ../bin/kmod /usr/sbin/$target
+      done
+
+      ln -sfv kmod /usr/bin/lsmod
+    popd
+}
+
+function install_libelf(){
+    _logger_info "Installing libelf"
+
+    pushd elfutils-*/
+      ./configure --prefix=/usr    \
+        --disable-debuginfod       \
+        --enable-libdebuginfod=dummy
+
+      make
+      # make check
+      make -C libelf install
+
+      install -v -m 644 config/libelf.pc /usr/lib/pkgconfig
+
+      # removes useless static library
+      rm /usr/lib/libelf.a
+    popd
+}
+
+function install_open_ssl(){
+    _logger_info "Installing openSSL"
+
+    pushd openssl-*/
+      ./config --prefix=/usr    \
+        --openssldir=/etc/ssl   \
+        --libdir=lib            \
+        shared zlib-dynamic
+
+      make
+      # make test
+
+      sed -i '/INSTALL_LIBS/s/libcrypto.a libssl.a//' Makefile
+      make MANSUFFIX=ssl install
+
+      mv -v /usr/share/doc/openssl /usr/share/doc/openssl-*
+      cp -Rfuv doc/* /usr/share/doc/openssl-*
+    popd
+}
+
+function install_libffi(){
+    _logger_info "Installing Libffi"
+
+    # TODO: set CFLAGs and CXXFLAGS to specify a generic build architecture otherwise
+    # TODO: it will throws "Illegal Operation Errors" errors
+
+    pushd libffi-*/
+      ./configure --prefix=/usr   \
+        --disable-static          \
+        --with-gcc-arch=native    \
+        --disable-exec-static-tramp
+
+      make
+      # make check
+      make install
+    popd
+}
+
+function install_python3(){
+    _logger_info "Installing python3"
+
+    pushd Python-*/
+      ./configure --prefix=/usr   \
+        --enable-shared           \
+        --with-system-expat       \
+        --with-system-ffi         \
+        --with-ensurepip=yes      \
+        --enable-optimizations
+
+      make
+      make install
+
+      install -dv -m 755 /usr/share/doc/python-*/html
+
+      tar --strip-components=1          \
+        --no-same-owner                 \
+        --no-same-permissions           \
+        -C /usr/share/doc/python-*/html \
+        -xvf ../python-*-docs-html.tar*
+    popd
+}
+
 function main(){
     _logger_info "Executing lib/tools.sh"
 
@@ -778,6 +1028,20 @@ function main(){
     install_gettext
     install_bison
     install_bash
+    install_gdbm
+    install_gperf
+    install_expat
+    install_inetutils
+    install_less
+    install_perl
+    install_xml_parser
+    install_intltool
+    install_automake
+    install_kmod
+    install_libelf
+    install_open_ssl
+    # TODO: fixme - install_libffi
+    install_python3
 
     exit 0
 }
