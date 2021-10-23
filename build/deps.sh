@@ -62,8 +62,8 @@ EOF
 function create_temp-build_dirs(){
     _logger_info "Creating build directories"
 
-    install -dv -m 1777 $BROOT/{boot,backup,etc,var,tools}
-    install -dv -m 1777 $BROOT/{source,usr/{{,s}bin,lib{,exec}}}
+    mkdir -vp $BROOT/{boot,backup,etc,var,tools}
+    mkdir -vp $BROOT/{source,usr/{{,s}bin,lib{,exec}}}
 
     for dir in {,s}bin lib; do
       ln -sfv {usr/,$BROOT/}$dir
@@ -82,7 +82,7 @@ function create_temp-build_dirs(){
 function mount_build_disk(){
     _logger_info "Handling build_disk"
 
-    install -dv -m 1777 $BROOT # sets sticky bit, prevents 'others' from deleting files
+    mkdir -vp $BROOT
 
     parted --script /dev/sdb mklabel gpt # Labeling build_disk
 
@@ -123,8 +123,6 @@ function check_for_backup(){
       _logger_info "Backup exits! Creating $BROOT/backup/VERSION"
 
       echo $BVERSION > $BROOT/backup/VERSION
-    else
-      _unload_build_packages
     fi
 }
 

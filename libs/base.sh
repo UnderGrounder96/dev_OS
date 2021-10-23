@@ -116,14 +116,13 @@ EOF
 }
 
 # ---------------------------- PACKAGES/UTILS ---------------------------------
+
 function install_libcpp(){
     _logger_info "Installing Libstd++"
 
     pushd gcc-*/
       ln -sfv gthr-posix.h libgcc/gthr-default.h
 
-      rm -rf build
-      mkdir -v build
       cd build
 
       CXXFLAGS="-g -O2 -D_GNU_SOURCE"            \
@@ -165,19 +164,18 @@ function install_perl(){
     _logger_info "Installing perl"
 
     pushd perl-*/
+      # -des: Defaults for all items; Ensures completion of all tasks;
+      #  and Silences non-essential output.
+      sh Configure -des -Dprefix=/usr -Dvendorprefix=/usr \
+        -Dprivlib=/usr/lib/perl5/5.34/core_perl           \
+        -Darchlib=/usr/lib/perl5/5.34/core_perl           \
+        -Dsitelib=/usr/lib/perl5/5.34/site_perl           \
+        -Dsitearch=/usr/lib/perl5/5.34/site_perl          \
+        -Dvendorlib=/usr/lib/perl5/5.34/vendor_perl       \
+        -Dvendorarch=/usr/lib/perl5/5.34/vendor_perl
 
-    # -des: Defaults for all items; Ensures completion of all tasks;
-    #  and Silences non-essential output.
-    sh Configure -des -Dprefix=/usr -Dvendorprefix=/usr \
-      -Dprivlib=/usr/lib/perl5/5.34/core_perl           \
-      -Darchlib=/usr/lib/perl5/5.34/core_perl           \
-      -Dsitelib=/usr/lib/perl5/5.34/site_perl           \
-      -Dsitearch=/usr/lib/perl5/5.34/site_perl          \
-      -Dvendorlib=/usr/lib/perl5/5.34/vendor_perl       \
-      -Dvendorarch=/usr/lib/perl5/5.34/vendor_perl
-
-    make
-    make install
+      make
+      make install
     popd
 }
 

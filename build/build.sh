@@ -31,7 +31,7 @@ function mount_build_dirs(){
 
     mount -v --bind /dev $BROOT/dev # populate /dev
 
-    mount -vt devpts devpts $BROOT/dev/pts --options mode=620
+    mount -vt devpts devpts $BROOT/dev/pts
     mount -vt proc proc $BROOT/proc
     mount -vt sysfs sysfs $BROOT/sys
     mount -vt tmpfs tmpfs $BROOT/run
@@ -47,16 +47,13 @@ function changing_build_ownership(){
     # copy lib,config files to be used inside chroot jail
     cp -rfuv $ROOT_DIR/{libs,configs} $BROOT
 
-    chown -vR root: $BROOT/{boot,usr,lib,var,etc,tools,{,s}bin}
+    chown -R root: $BROOT/{boot,usr,lib,var,etc,tools,{,s}bin}
 
     case $(uname -m) in
       x86_64)
-        chown -vR root: $BROOT/lib64
+        chown -R root: $BROOT/lib64
         ;;
     esac
-
-    rm -rf $BROOT/source/*
-    _unload_build_packages
 }
 
 function restore_temp-tools(){
@@ -70,7 +67,7 @@ function buid_tmp_OS(){
 
     # build temp_OS in chroot environment
     chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
-      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ "    \
+      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ \n"  \
       PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
       -c "sh /libs/base.sh /configs/common.sh"
 }
@@ -91,7 +88,7 @@ function build_tools(){
 
     # build packages in chroot environment
     chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
-      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ "    \
+      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ \n"  \
       PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
       -c "sh /libs/tools.sh /configs/common.sh"
 }
@@ -109,10 +106,14 @@ function main(){
       restore_temp-tools
 
     else
+      _unload_build_packages
+
       buid_tmp_OS
 
       backup_tmp_OS
     fi
+
+    _unload_build_packages
 
     build_tools
 

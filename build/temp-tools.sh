@@ -22,7 +22,6 @@ function compile_binutils_1(){
     _logger_info "Compiling binutils pass 1"
 
     pushd binutils-*/
-      mkdir -v build
       cd build
 
       ../configure --prefix=$BROOT/tools \
@@ -75,6 +74,8 @@ function compile_gcc_1(){
       cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
         `dirname $($BTARGET-gcc -print-libgcc-file-name)`/install-tools/include/limits.h
     popd
+
+    _wipe_tool gcc
 }
 
 function install_kernel_headers(){
@@ -140,8 +141,7 @@ function compile_libcpp(){
     _logger_info "Compiling standard C++ Library"
 
     pushd gcc-*/
-      rm -rf build
-      mkdir -v build
+      mkdir -vp build
       cd build
 
       ../libstdc++-v3/configure --prefix=/usr      \
@@ -155,9 +155,23 @@ function compile_libcpp(){
       make
       make DESTDIR=$BROOT install
     popd
+
+    _wipe_tool gcc
 }
 
 # --------------------------- PACKAGES/UTILS -----------------------------------
+
+function compile_basic_packages(){
+    _logger_info "Compiling ${1}"
+
+    pushd ${1}-*/
+      ./configure --prefix=/usr --host=$BTARGET \
+      $([ "${complex}" = build ] && echo "--build=$(build-aux/config.guess)")
+
+      make
+      make DESTDIR=$BROOT install
+    popd
+}
 
 function compile_ncurses(){
     _logger_info "Compiling ncurses"
@@ -167,7 +181,7 @@ function compile_ncurses(){
       sed -i 's/mawk//' configure
 
       # builds "tic" program on build host
-      mkdir -v build
+      mkdir -vp build
       pushd build
         ../configure
         make -C include
@@ -227,7 +241,7 @@ function compile_coreutils(){
 
       mkdir -vp $BROOT/usr/share/man/man8
       sed -i 's/"1"/"8"/' $BROOT/usr/share/man/man1/chroot.1
-      mv -v $BROOT/usr/share/man/man1/chroot.1 $BROOT/usr/share/man/man8/chroot.8
+      mv -v $BROOT/usr/share/man/man{1/chroot.1,8/chroot.8}
     popd
 }
 
@@ -235,7 +249,7 @@ function compile_file(){
     _logger_info "Compiling file"
 
     pushd file-*/
-      mkdir -v build
+      mkdir -vp build
       pushd build
         ../configure --disable-libseccomp  \
           --disable-bzlib                  \
@@ -311,39 +325,13 @@ function compile_xz(){
     popd
 }
 
-function compile_basic_packages(){
-    for pkg in diffutils grep gzip sed; do
-      _logger_info "Compiling $pkg"
-
-      pushd $pkg-*/
-        ./configure --prefix=/usr \
-          --host=$BTARGET
-
-        make
-        make DESTDIR=$BROOT install
-      popd
-    done
-
-    for pkg in m4 patch tar; do
-      _logger_info "Compiling $pkg"
-
-      pushd $pkg-*/
-        ./configure --prefix=/usr          \
-          --host=$BTARGET                  \
-          --build=$(build-aux/config.guess)
-
-        make
-        make DESTDIR=$BROOT install
-      popd
-    done
-}
 # --------------------------- STAGE 2 ------------------------------------------
 
 function compile_binutils_2(){
     _logger_info "Compiling binutils pass 2"
 
     pushd binutils-*/
-      mkdir -v build
+      mkdir -vp build
       cd build
 
       ../configure --prefix=/usr   \
@@ -365,9 +353,18 @@ function compile_gcc_2(){
     _logger_info "Compiling gcc pass 2"
 
     pushd gcc-*/
-      rm -rf build
+      for i in mpfr gmp mpc; do
+        tar -xf ../$i-*tar*
+        mv $i-*/ $i
+      done
 
-      mkdir build
+      case $(uname -m) in
+        x86_64)
+          sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
+        ;;
+      esac
+
+      mkdir -vp build
       cd build
 
       # creates symlink that allows posix threads support
@@ -399,6 +396,8 @@ function compile_gcc_2(){
 }
 
 function main(){
+    _unload_build_packages
+
 # ------- STAGE 1 -------
 
     compile_binutils_1
@@ -413,15 +412,24 @@ function main(){
 
 # ---- PACKAGES/UTILS ----
 
+    complex="build"
+    compile_basic_packages m4
     compile_ncurses
     compile_bash
     compile_coreutils
+    complex="ramdon"
+    compile_basic_packages diffutils
     compile_file
     compile_findutils
     compile_gawk
+    compile_basic_packages grep
+    compile_basic_packages gzip
     compile_make
+    compile_basic_packages sed
+    complex="build"
+    compile_basic_packages patch
+    compile_basic_packages tar
     compile_xz
-    compile_basic_packages
 
 # # ------ STAGE 2 -------
 
