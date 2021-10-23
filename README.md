@@ -42,6 +42,8 @@ sudo mkdir -vp /dev_OS_build/source
 
 ## License
 
+Copyright © 1999-2021 Gerard Beekmans
+
 This project is licensed under the GPL License - see the LICENSE file for details
 
 ## Acknowledgments
