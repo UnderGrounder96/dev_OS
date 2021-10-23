@@ -15,7 +15,7 @@ function vagrant_destroy(){
     vagrant destroy -f
 }
 
-# trap vagrant_destroy EXIT
+trap vagrant_destroy EXIT
 
 
 function main(){
@@ -44,6 +44,6 @@ function main(){
 
     exit $EXIT_BUILD_STATUS
 }
-rm -rf logs/*
+
 vagrant_destroy
 main

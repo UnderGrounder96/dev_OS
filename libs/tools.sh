@@ -1453,6 +1453,72 @@ function install_e2fsprogs(){
     popd
 }
 
+function stripping(){
+    _logger_info "Perform stripping"
+
+    cd /usr/lib
+
+    local save_usrlib="$(cd /usr/lib; ls ld-linux*)
+      libc.so.6
+      libthread_db.so.1
+      libquadmath.so.0.0.0
+      libstdc++.so.6.0.29
+      libitm.so.1.0.0
+      libatomic.so.1.2.0"
+
+    for LIB in $save_usrlib; do
+      objcopy --only-keep-debug $LIB $LIB.dbg
+      cp $LIB /tmp/$LIB
+      strip --strip-unneeded /tmp/$LIB || true
+      objcopy --add-gnu-debuglink=$LIB.dbg /tmp/$LIB
+      install -vm755 /tmp/$LIB /usr/lib
+      rm /tmp/$LIB
+    done
+
+    local online_usrbin="bash find strip"
+    local online_usrlib="libbfd-2.37.so
+      libhistory.so.8.1
+      libncursesw.so.6.2
+      libm.so.6
+      libreadline.so.8.1
+      libz.so.1.2.11
+      $(cd /usr/lib; find libnss*.so* -type f)"
+
+    for BIN in $online_usrbin; do
+      cp /usr/bin/$BIN /tmp/$BIN
+      strip --strip-unneeded /tmp/$BIN &>/dev/null || true
+      install -vm755 /tmp/$BIN /usr/bin
+      rm /tmp/$BIN
+    done
+
+    for LIB in $online_usrlib; do
+      cp /usr/lib/$LIB /tmp/$LIB
+      strip --strip-unneeded /tmp/$LIB &>/dev/null || true
+      install -vm755 /tmp/$LIB /usr/lib
+      rm /tmp/$LIB
+    done
+
+    for i in $(find /usr/lib -type f -name \*.so* ! -name \*dbg) \
+      $(find /usr/lib -type f -name \*.a) $(find /usr/{bin,sbin,libexec} -type f); do
+      case "$online_usrbin $online_usrlib $save_usrlib" in
+        *$(basename $i)* )
+          ;;
+        * )
+          strip --strip-unneeded $i &>/dev/null || true
+        ;;
+      esac
+    done
+
+    unset BIN LIB
+
+    _logger_info "Performing clean-up"
+
+    rm -rf /tmp/*
+    find /usr/lib{,64,exec} -name \*.la -delete
+    find /usr -depth -name $(uname -m)-lfs-linux-gnu\* | xargs rm -rf
+    userdel tester
+}
+
 function main(){
     _logger_info "Executing lib/tools.sh"
 
@@ -1529,6 +1595,7 @@ function main(){
     install_procps_ng
     install_util_linux
     install_e2fsprogs
+    stripping
 
     exit 0
 }

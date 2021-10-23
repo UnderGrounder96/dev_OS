@@ -101,21 +101,27 @@ function main(){
     mount_build_dirs
 
     changing_build_ownership
-
-    if compgen -G "$ROOT_DIR/backup/backup-basic-OS.tar*" >/dev/null; then
-      restore basic-OS
+    if compgen -G "$ROOT_DIR/backup/backup-tmp-OS.tar*" >/dev/null; then
+      restore tmp-OS
 
     else
+      if compgen -G "$ROOT_DIR/backup/backup-basic-OS.tar*" >/dev/null; then
+        restore basic-OS
+
+      else
+        _unload_build_packages
+
+        buid_basic_OS
+
+        backup basic-OS
+      fi
+
       _unload_build_packages
 
-      buid_basic_OS
+      build_tools
 
-      backup basic-OS
+      backup tmp-OS
     fi
-
-    _unload_build_packages
-
-    build_tools
 
     exit 0
 }
