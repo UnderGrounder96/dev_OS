@@ -691,17 +691,14 @@ function install_gettext(){
     _logger_info "Installing gettext"
 
     pushd gettext-*/
-      # _logger_info "config"
       # CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
         ./configure --prefix=/usr     \
         --disable-static              \
         --docdir=/usr/share/doc/gettext-*
 
-      # _logger_info "test"
       make #CFLAGS="-fPIC" CXXFLAGS="-fPIC"
       # make check
 
-      # _logger_info "dumb"
       make install
       chmod -v 0755 /usr/lib/preloadable_libintl.so
     popd
