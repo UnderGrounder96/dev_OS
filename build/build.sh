@@ -56,31 +56,31 @@ function changing_build_ownership(){
     esac
 }
 
-function restore_temp-tools(){
-    _logger_info "Restoring build temptools"
+function restore(){
+    _logger_info "Restoring ${1}"
 
-    tar -xpf $ROOT_DIR/backup/backup*$BVERSION*.tar*
+    tar -xpf $ROOT_DIR/backup/backup*${1}*.tar*
 }
 
-function buid_tmp_OS(){
-    _logger_info "Building temporary OS"
-
-    # build temp_OS in chroot environment
-    chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
-      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ \n"  \
-      PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
-      -c "sh /libs/base.sh /configs/common.sh"
-}
-
-function backup_tmp_OS(){
-    _logger_info "Backing up tmp OS"
+function backup(){
+    _logger_info "Backing up ${1}"
 
     umount $BROOT/dev{/pts,}
     umount $BROOT/{proc,sys,run}
 
-    tar --exclude={"source","libs","configs","backup"} -cJpf $ROOT_DIR/backup-temp-OS-$BVERSION.tar.xz .
+    tar --exclude={"source","libs","configs","backup"} -cJpf $ROOT_DIR/backup-${1}.tar.xz .
 
     mount_build_dirs
+}
+
+function buid_basic_OS(){
+    _logger_info "Building basic OS"
+
+    # build basic OS in chroot environment
+    chroot "$BROOT" /usr/bin/env -i  HOME="/root"     \
+      TERM="$TERM"  PS1="(dev_OS chroot) \u:\w\$ \n"  \
+      PATH="/usr/bin:/usr/sbin" /bin/bash --login +h  \
+      -c "sh /libs/base.sh /configs/common.sh"
 }
 
 function build_tools(){
@@ -102,15 +102,15 @@ function main(){
 
     changing_build_ownership
 
-    if [ -f "$BROOT/backup/VERSION" ]; then
-      restore_temp-tools
+    if compgen -G "$ROOT_DIR/backup/backup-basic-OS.tar*" >/dev/null; then
+      restore basic-OS
 
     else
       _unload_build_packages
 
-      buid_tmp_OS
+      buid_basic_OS
 
-      backup_tmp_OS
+      backup basic-OS
     fi
 
     _unload_build_packages

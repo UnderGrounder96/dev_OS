@@ -119,8 +119,8 @@ function mount_build_disk(){
 }
 
 function check_for_backup(){
-    if compgen -G "$ROOT_DIR/backup/backup*$BVERSION*.tar*" >/dev/null; then
-      _logger_info "Backup exits! Creating $BROOT/backup/VERSION"
+    if compgen -G "$ROOT_DIR/backup/backup*.tar*" >/dev/null; then
+      _logger_info "Backup exists! Creating $BROOT/backup/VERSION"
 
       echo $BVERSION > $BROOT/backup/VERSION
     fi

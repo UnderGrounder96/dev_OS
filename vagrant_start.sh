@@ -15,7 +15,7 @@ function vagrant_destroy(){
     vagrant destroy -f
 }
 
-trap vagrant_destroy EXIT
+# trap vagrant_destroy EXIT
 
 
 function main(){
@@ -38,12 +38,12 @@ function main(){
     vagrant scp ":/vagrant/logs/*.log*" logs/ # if scp below v0.5, see https://github.com/hashicorp/vagrant/issues/12504
 
     _logger_info "WARNING: Backing up build toolchain"
-    vagrant scp ":/vagrant/backup*$BVERSION*.tar*" backup/ || {
+    vagrant scp ":/vagrant/backup*.tar*" backup/ || {
         _logger_info "ERROR: Build toolchain was not backed up"
     }
 
     exit $EXIT_BUILD_STATUS
 }
-
+rm -rf logs/*
 vagrant_destroy
 main
