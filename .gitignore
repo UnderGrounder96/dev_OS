@@ -7,4 +7,5 @@ logs/
 # files
 *.log*
 *.tar*
+*.iso
 .DS_Store
