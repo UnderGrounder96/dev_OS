@@ -9,8 +9,11 @@ BUSER="byol"
 BROOT="/build"
 BTARGET="$(uname -m)-BROOT-linux-gnu"
 BVERSION="1.0.0"
+BCODENAME="One"
 MAKEFLAGS="--jobs 9"
 CONFIG_SITE=$BROOT/usr/share/config.site
+SYSLINUX="https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.xz"
+BUSYBOX="https://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 
 # helper function
 function _logger_info(){

@@ -93,6 +93,97 @@ function build_tools(){
       -c "sh /libs/tools.sh /configs/common.sh"
 }
 
+function configure_tmp-OS(){
+    _logger_info "Configuring tmp-OS"
+
+    chroot "$BROOT" /usr/bin/env -i HOME="/root"    \
+      TERM="$TERM" PS1="(dev_OS chroot) \u:\w\$ \n" \
+      PATH="/usr/bin:/usr/sbin" /bin/bash --login   \
+      -c "sh /libs/sys.sh /configs/common.sh"
+}
+
+function export-dev_OS(){
+    _logger_info "Exporting dev_OS-$BVERSION.iso"
+
+    # clean-ups
+    rm -rf $BROOT/{backup,configs,libs,source,tools}
+
+    umount $BROOT/dev{/pts,}
+    umount $BROOT/{proc,sys,run}
+
+    pushd /tmp/
+      # preparing iso export
+      wget -nv $SYSLINUX  && tar -xf syslinux-*.tar*
+
+      mkdir -vp build_iso/isolinux/
+
+      cp -fu syslinux-*/bios/core/isolinux.bin \
+        syslinux-*/bios/com32/elflink/ldlinux/ldlinux.c32 \
+        build_iso/isolinux/
+
+      cp -Rfu $BROOT/boot build_iso/
+
+      tee build_iso/isolinux/isolinux.cfg <<"EOF"
+DEFAULT linux
+TIMEOUT 3
+PROMPT 0
+
+MENU TITLE Dev-OS GNU/Linux 5.13.12
+
+LABEL linux
+    KERNEL /boot/vmlinuz
+    APPEND root=/dev/sda5 init=/bin/bash
+EOF # initrd=boot/efiboot.img
+
+      # configuring iso export, size (kb)
+      local IMAGE_SIZE=9000000
+      local RAMDISK=/tmp/ramdisk
+      local LOOP_DIR=/tmp/dev/loop0
+
+      # creates loop0 dir and dev
+      mkdir -vp $LOOP_DIR
+      mknod /dev/loop0 b 7 0
+
+      # creates initial ramdisk file
+      dd if=/dev/zero of=$RAMDISK bs=1k count=$IMAGE_SIZE
+
+      # detaches any (virtual) fs from loop device
+      losetup --detach /dev/loop0 || true
+
+      # assosiates ramdisk with loop0
+      losetup /dev/loop0 $RAMDISK
+
+      # creates ext4 filesystem
+      mkfs.ext4 -q -m 0 /dev/loop0 $IMAGE_SIZE
+
+      mount /dev/loop0 $LOOP_DIR
+      rm -rf $LOOP_DIR/lost+found
+
+      # copy dev_OS
+      cp -dpRfu $BROOT/* $LOOP_DIR
+
+      # show statistics
+      df -lh $LOOP_DIR
+      du -sh $LOOP_DIR
+
+      # lists system ramdisk to image
+      bzip2 --stdout $RAMDISK > build_iso/boot/efiboot.img
+
+      cd build_iso
+
+      # generating iso image
+      genisoimage -o devOS-minimal-$BVERSION-$(date +%F)-x86_64.iso \
+        -b isolinux/isolinux.bin  -c isolinux/boot.cat -no-emul-boot \
+        -boot-info-table -boot-load-size 4 . # -eltorito-alt-boot -e boot/efiboot.img
+
+      # more clean-ups
+      umount -v $LOOP_DIR
+      losetup --detach /dev/loop0
+    popd
+
+    # umount -vR --lazy $BROOT
+}
+
 function main(){
     create_kernel_dirs
 
@@ -101,8 +192,11 @@ function main(){
     mount_build_dirs
 
     changing_build_ownership
+
     if compgen -G "$ROOT_DIR/backup/backup-tmp-OS.tar*" >/dev/null; then
       restore tmp-OS
+
+      tar -xf $ROOT_DIR/bin/linux-*.tar* -C $BROOT/source
 
     else
       if compgen -G "$ROOT_DIR/backup/backup-basic-OS.tar*" >/dev/null; then
@@ -122,6 +216,10 @@ function main(){
 
       backup tmp-OS
     fi
+
+    configure_tmp-OS
+
+    export-dev_OS
 
     exit 0
 }

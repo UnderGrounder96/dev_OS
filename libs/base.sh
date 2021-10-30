@@ -48,8 +48,8 @@ function create_essential_files(){
 
     # creates basic hosts file
     tee /etc/hosts <<EOF
-127.0.0.1  localhost $(hostname)
-::1        localhost
+127.0.0.1  localhost.localdomain localhost localhost4 $(hostname)
+::1        localhost.localdomain localhost localhost6
 EOF
 
     # create default users - added "tester"

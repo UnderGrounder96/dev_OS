@@ -18,7 +18,7 @@ function group_installs(){
 function solo_installs(){
     _logger_info "Performing soloinstalls"
 
-    dnf install -y dosfstools # ms-dos fs tools, mkvfat
+    dnf install -y genisoimage squashfs-tools dosfstools # ms-dos fs tools, mkvfat
 }
 
 function check_yaac(){

@@ -36,6 +36,8 @@ function main(){
 
     build_OS
 
+    # reboot
+
     exit 0
 }
 
