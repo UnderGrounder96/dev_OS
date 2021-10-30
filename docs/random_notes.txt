@@ -1,0 +1,46 @@
+#Extra information - moving forward
+
+Bootloaders
+https://wiki.archlinux.org/title/Syslinux
+
+https://gnu.org/software/grub/manual/grub/grub.html - Grub doc
+
+
+Make it bootable
+https://youtu.be/A9pmmKx0iAU
+https://github.com/masmullin2000/LiveScratch
+
+https://linuxfromscratch.org/hints/downloads/files/boot-cd_easy.txt
+https://linuxfromscratch.org/hints/downloads/files/OLD/bootcd-2.6-udev-nptl.txt
+
+https://maketecheasier.com/create-linux-distro/
+
+
+Build your own os
+https://youtube.com/watch?v=Sk9TatW9ino
+
+https://youtube.com/watch?v=RPFuZGoaYSU
+
+https://linuxjournal.com/content/diy-build-custom-minimal-linux-distribution-source
+
+
+Package managers to consider:
+
+https://github.com/Homebrew
+
+https://github.com/ihucos/zpkg
+
+https://forums.gentoo.org/viewtopic.php?t=28559&highlight=portage+another
+
+https://nixos.org/
+
+https://github.com/fsquillace/junest
+
+https://github.com/inthecloud247/runit-for-lfs
+
+https://github.com/benvd/lfs-pacman
+
+https://github.com/inthecloud247/runit-for-lfs
+
+https://github.com/luarocks
+
