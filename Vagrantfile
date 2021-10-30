@@ -13,7 +13,7 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "generic/fedora33"
-  config.vm.hostname = "dev-os"
+  config.vm.hostname = "dev-os-builder"
 
   config.vm.disk :disk, name: "build_disk", size: "50GB"
 
@@ -56,7 +56,7 @@ Vagrant.configure("2") do |config|
     # vb.gui = true
 
     # Customize the name of the VM:
-    vb.name = "dev-os"
+    vb.name = "dev-os-builder"
 
     # Customize the amount of CPU cores on the VM:
     vb.cpus = 8
