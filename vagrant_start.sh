@@ -42,8 +42,12 @@ function main(){
         _logger_info "ERROR: Build toolchain was not backed up"
     }
 
+    vagrant scp ":/tmp/build_iso/devOS*minimal*.iso" . || {
+        _logger_info "ERROR: DevOS-minimal was not retrieved"
+    }
+
     exit $EXIT_BUILD_STATUS
 }
-
+# rm -rf logs/*
 vagrant_destroy
 main
