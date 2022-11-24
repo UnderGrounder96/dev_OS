@@ -120,8 +120,10 @@ function configure_network(){
 
     # using cloudfare dns
     tee /etc/resolv.conf <<EOF
+# Begin /etc/resolv.conf
 nameserver 1.1.1.1
 nameserver 1.0.0.1
+# End /etc/resolv.conf
 EOF
 
     # configures systemd dhcp

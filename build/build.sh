@@ -123,7 +123,7 @@ function export-dev_OS(){
 
       cp -Rfu $BROOT/boot build_iso/
 
-      tee build_iso/isolinux/isolinux.cfg <<"EOF"
+      tee build_iso/isolinux/isolinux.cfg <<EOF
 DEFAULT linux
 TIMEOUT 3
 PROMPT 0
@@ -133,7 +133,8 @@ MENU TITLE Dev-OS GNU/Linux 5.13.12
 LABEL linux
     KERNEL /boot/vmlinuz
     APPEND root=/dev/sda5 init=/bin/bash
-EOF # initrd=boot/efiboot.img
+EOF
+      # initrd=boot/efiboot.img
 
       # configuring iso export, size (kb)
       local IMAGE_SIZE=9000000

@@ -781,7 +781,7 @@ function install_expat(){
       # make check
       make install
 
-      install -v -m 644 doc/*.{html,png,css} /usr/share/doc/expat-*
+      install -v -m 644 doc/*.{html,css} /usr/share/doc/expat-*
     popd
 }
 
@@ -1481,7 +1481,7 @@ function stripping(){
       libncursesw.so.6.2
       libm.so.6
       libreadline.so.8.1
-      libz.so.1.2.11
+      libz.so.1.2.13
       $(cd /usr/lib; find libnss*.so* -type f)"
 
     for BIN in $online_usrbin; do
