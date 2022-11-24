@@ -48,6 +48,7 @@ function main(){
 
     exit $EXIT_BUILD_STATUS
 }
+
 # rm -rf logs/*
 vagrant_destroy
 main

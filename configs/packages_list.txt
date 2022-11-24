@@ -15,7 +15,7 @@ https://ftp.gnu.org/gnu/diffutils/diffutils-3.8.tar.xz
 https://downloads.sourceforge.net/project/e2fsprogs/e2fsprogs/v1.46.4/e2fsprogs-1.46.4.tar.gz
 https://sourceware.org/ftp/elfutils/0.185/elfutils-0.185.tar.bz2
 https://dev.gentoo.org/~blueness/eudev/eudev-3.2.10.tar.gz
-https://prdownloads.sourceforge.net/expat/expat-2.4.1.tar.xz
+https://sourceforge.net/projects/expat/files/expat/2.5.0/expat-2.5.0.tar.xz
 https://prdownloads.sourceforge.net/expect/expect5.45.4.tar.gz
 https://astron.com/pub/file/file-5.40.tar.gz
 https://ftp.gnu.org/gnu/findutils/findutils-4.8.0.tar.xz
@@ -80,7 +80,7 @@ https://www.kernel.org/pub/linux/utils/util-linux/v2.37/util-linux-2.37.2.tar.xz
 https://anduin.linuxfromscratch.org/LFS/vim-8.2.3337.tar.gz
 https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.46.tar.gz
 https://tukaani.org/xz/xz-5.2.5.tar.xz
-https://zlib.net/zlib-1.2.11.tar.xz
+https://zlib.net/zlib-1.2.13.tar.xz
 https://github.com/facebook/zstd/releases/download/v1.5.0/zstd-1.5.0.tar.gz
 https://www.linuxfromscratch.org/patches/lfs/11.0/binutils-2.37-upstream_fix-1.patch
 https://www.linuxfromscratch.org/patches/lfs/11.0/bzip2-1.0.8-install_docs-1.patch

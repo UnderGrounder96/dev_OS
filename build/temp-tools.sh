@@ -431,7 +431,7 @@ function main(){
     compile_basic_packages tar
     compile_xz
 
-# # ------ STAGE 2 -------
+# ------ STAGE 2 -------
 
     compile_binutils_2
     compile_gcc_2

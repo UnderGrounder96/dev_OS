@@ -18,7 +18,7 @@ one could build `dev_OS` by running:
 ```bash
 vagrant plugin install vagrant-hostmanager vagrant-scp
 
-# execute wget to download all build packages/files to bin/, using configs/packages_list.txt
+# execute wget to download all build packages/files to bin/, see docs/build_packages.txt
 
 bash vagrant_start.sh
 ```
@@ -32,7 +32,7 @@ Once the installation is complete, please execute the following commands:
 sudo usermod jenkins -aG %admin # admin: wheel (fedora/centos) or sudo (debian/ubuntu)
 sudo mkdir -vp /dev_OS_build/source
 # perform a wget to download all build packages/files to /dev_OS_build/source, see docs/build_packages.txt
-# create and run a pipeline
+# create and run a pipeline (with Jenkinsfile)
 ```
 
 ## Authors
